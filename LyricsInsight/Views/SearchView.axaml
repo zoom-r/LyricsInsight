@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LyricsInsight.ViewModels"
+             xmlns:m="using:LyricsInsight.Core.Models"
+             xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="LyricsInsight.Views.SearchView"
+             x:DataType="vm:SearchViewModel">
+    
+    <Grid RowDefinitions="Auto, *">
+        <TextBox Grid.Row="0"
+                 Watermark="Търси песен, албум или изпълнител..."
+                 Text="{Binding SearchQuery}" 
+                 Margin="10"/>
+        
+        <ListBox Grid.Row="1"
+                 Margin="10,0,10,10"
+                 ItemsSource="{Binding SearchResults}"
+                 SelectedItem="{Binding SelectedSong, Mode=TwoWay}"> 
+            
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="m:SongSearchResult">
+                    <Grid ColumnDefinitions="Auto, *" Margin="0,5">
+                        
+                        <Image  Grid.Column="0"
+                           Width="50" Height="50"
+                           asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverUrl}"
+                        />
+                        
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Artist}" FontSize="12"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>

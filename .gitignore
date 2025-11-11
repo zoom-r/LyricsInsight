@@ -1,0 +1,37 @@
+### .NET Core ###
+# Игнорирай компилираните файлове (най-важното!)
+[Oo]bj/
+[Bb]in/
+
+# Игнорирай Visual Studio / Rider служебни файлове
+.vs/
+.idea/
+*.suo
+*.user
+*.sln.docstates
+
+# Игнорирай файлове на операционната система
+.DS_Store
+Thumbs.db
+
+# Игнорирай NuGet кеша
+*.nuget.props
+*.nuget.targets
+packages/
+
+# Игнорирай файлове с локални настройки, които не трябва да се споделят
+*.local.xml
+*.lock.json
+*.config.user
+secrets.json
+
+# Игнорирай API ключа (ако си го сложил във файл по погрешка)
+# Въпреки че ние използваме Environment Variables, това е добра практика
+*.env
+*.private
+
+# Игнорирай логове и временни файлове
+*.log
+*.tmp
+*.temp
+*.pdf

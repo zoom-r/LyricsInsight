@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Google.GenAI" Version="0.4.0" />
+      <PackageReference Include="LyricsScraperNET" Version="2.2.2" />
+      <PackageReference Include="System.Net.Http.Json" Version="9.0.10" />
+    </ItemGroup>
+
+</Project>

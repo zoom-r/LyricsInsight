@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LyricsInsight.ViewModels"
+             xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="LyricsInsight.Views.SongDetailsView"
+             x:DataType="vm:SongDetailsViewModel">
+    
+    <Grid ColumnDefinitions="300, *">
+        
+        <StackPanel Grid.Column="0" Margin="15">
+            
+            <Button Command="{Binding BackCommand}"
+                HorizontalAlignment="Stretch" Margin="0,0,0,10" >
+                ← Назад към търсенето
+            </Button>
+                
+            <Image asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverUrl}" Width="270" Height="270"/>
+            
+            <TextBlock Text="{Binding Title}" 
+                       FontSize="20" FontWeight="Bold" TextWrapping="Wrap" Margin="0,10,0,0"/>
+            <TextBlock Text="{Binding Artist}" 
+                       FontSize="16" Opacity="0.8"/>
+            <TextBlock Text="{Binding ReleaseDate}" FontSize="12" Opacity="0.7" Margin="0,10,0,0"/>
+            
+            <Separator Margin="0,15"/>
+            <Label>Изтегляне:</Label>
+    
+            <Button x:Name="SaveLyricsButton"
+                    Content="Запази Текст (.txt)"
+                    HorizontalAlignment="Stretch" Margin="0,5,0,0"/>
+    
+            <Button x:Name="SaveAnalysisButton"
+                    Content="Запази Анализ (.md)"
+                    IsEnabled="{Binding IsAnalysisReady}"
+                    HorizontalAlignment="Stretch" Margin="0,5,0,0"/>
+    
+            <Grid ColumnDefinitions="*,*,*" Margin="0,5,0,0">
+                <Button x:Name="SaveCoverSmallButton" Grid.Column="0" Content="Корица (S)" HorizontalAlignment="Stretch"/>
+                <Button x:Name="SaveCoverMediumButton" Grid.Column="1" Content="Корица (M)" HorizontalAlignment="Stretch"/>
+                <Button x:Name="SaveCoverBigButton" Grid.Column="2" Content="Корица (L)" HorizontalAlignment="Stretch"/>
+            </Grid>
+        </StackPanel>
+        
+        <TabControl Grid.Column="1" Margin="0,10,10,10">
+            <TabItem Header="Текст">
+                <TextBox Text="{Binding LyricsText}"
+                         IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"/>
+            </TabItem>
+            
+            <TabItem Header="AI Анализ">
+                <md:MarkdownScrollViewer Markdown="{Binding AiAnalysisText}"
+                                 Margin="5" />
+            </TabItem>
+            
+            <TabItem Header="Чат с AI" IsEnabled="False">
+            </TabItem>
+            
+        </TabControl>
+    </Grid>
+</UserControl>

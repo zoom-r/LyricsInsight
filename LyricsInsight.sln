@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LyricsInsight", "LyricsInsight\LyricsInsight.csproj", "{4F891B9C-DAC3-42C4-ADFC-3AAE9D0AD64E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LyricsInsight.Core", "LyricsInsight.Core\LyricsInsight.Core.csproj", "{C468901C-94A6-4B95-B15D-5AE06B8BD939}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4F891B9C-DAC3-42C4-ADFC-3AAE9D0AD64E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F891B9C-DAC3-42C4-ADFC-3AAE9D0AD64E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F891B9C-DAC3-42C4-ADFC-3AAE9D0AD64E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F891B9C-DAC3-42C4-ADFC-3AAE9D0AD64E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C468901C-94A6-4B95-B15D-5AE06B8BD939}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C468901C-94A6-4B95-B15D-5AE06B8BD939}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C468901C-94A6-4B95-B15D-5AE06B8BD939}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C468901C-94A6-4B95-B15D-5AE06B8BD939}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
