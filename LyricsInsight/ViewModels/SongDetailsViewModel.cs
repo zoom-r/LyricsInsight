@@ -4,6 +4,8 @@ using LyricsInsight.Core.Models; // Трябва ни SongSearchResult
 using LyricsInsight.Core.Services;
 using ReactiveUI; // За ViewModelBase
 using System.Windows.Input;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 
 
 namespace LyricsInsight.ViewModels;
@@ -84,92 +86,102 @@ public class SongDetailsViewModel : ViewModelBase
         Title = selectedSong.Title;
         Artist = selectedSong.Artist;
         AlbumCoverUrl = selectedSong.AlbumCoverUrl; // Ще вземем по-голяма снимка по-късно
-        Album = selectedSong.Album;
+        Album = $"Албум: {selectedSong.Album}";
         IsAnalysisReady = false;
         // --- ВРЕМЕННО: ФАЛШИВИ ДАННИ ---
         // Ще заредим истинските данни от Genius/OpenAI в следващите стъпки.
         // Засега слагаме фалшив текст, за да тестваме UI-я.
         // Задаваме "Зареждане..." съобщения
-        LyricsText = "Зареждане на текста... 歌詞";
+        LyricsText = "Зареждане на текста...";
         AiAnalysisText = "Очаква се текстът, за да започне анализ...";
-        LoadLyrics();
         LoadSongDetails(selectedSong.Id);
+        LoadLyrics();
     }
     
-    private async void LoadLyrics()
+    private void LoadLyrics()
     {
-        try
+        Task.Run(async () =>
         {
-            // Това се случва на фонова нишка (OK)
-            var lyrics = await _lyricsService.GetLyricsAsync(Artist, Title);
+            try
+            {
+                // Това се случва на фонова нишка (OK)
+                var lyricsResult = await _lyricsService.GetLyricsAsync(Artist, Title);
 
-            // Това е UI ъпдейт -> трябва да е в Dispatcher!
+                // Това е UI ъпдейт -> трябва да е в Dispatcher!
             
-            if (string.IsNullOrWhiteSpace(lyrics))
-            {
-                LyricsText = "За съжаление текстът на песента не беше намерен. 😔";
-                AiAnalysisText = "Няма текст, върху който да се извърши анализ.";
-            }
-            else
-            {
-                LyricsText = lyrics;
-                // Безопасно е да извикаш LoadAnalysis оттук,
-                // защото сме на UI нишката.
-                LoadAnalysis(lyrics); 
-            }
+                if (lyricsResult == null || string.IsNullOrWhiteSpace(lyricsResult.Text))
+                {
+                    LyricsText = "За съжаление текстът на песента не беше намерен.";
+                    AiAnalysisText = "Няма текст, върху който да се извърши анализ.";
+                }
+                else
+                {
+                    string footer = $"\n\n\n(Източник: {lyricsResult.Source})";
+                    LyricsText = lyricsResult.Text + footer;
+                    // Безопасно е да извикаш LoadAnalysis оттук,
+                    // защото сме на UI нишката.
+                    LoadAnalysis(lyricsResult.Text); 
+                }
             
-        }
-        catch (Exception ex)
-        {
+            }
+            catch (Exception ex)
+            {
                 LyricsText = $"Възникна грешка при зареждането на текста: {ex.Message}";
                 AiAnalysisText = "Анализът не може да продължи.";
-        }
+            }
+        });
     }
     
-    private async void LoadAnalysis(string lyricsToAnalyze)
+    private void LoadAnalysis(string lyricsToAnalyze)
     {
-        try
+        Task.Run(async () =>
         {
-            // Този ъпдейт е OK, защото е ПРЕДИ 'await'-а
-            AiAnalysisText = "Генериране на AI анализ... 🤖 (това може да отнеме няколко секунди)";
+            try
+            {
+                // Този ъпдейт е OK, защото е ПРЕДИ 'await'-а
+                AiAnalysisText = "Генериране на AI анализ... (това може да отнеме няколко секунди)";
         
-            // Това се случва на фонова нишка (OK)
-            var analysis = await _genAiService.GenerateAnalysisAsync(lyricsToAnalyze, Title, Artist);
+                // Това се случва на фонова нишка (OK)
+                var (analysis, success) = await _genAiService.GenerateAnalysisAsync(lyricsToAnalyze, Title, Artist, Album);
         
-            // Това е UI ъпдейт СЛЕД 'await' -> трябва да е в Dispatcher!
-            AiAnalysisText = analysis;
-            IsAnalysisReady = true;
+                // Това е UI ъпдейт СЛЕД 'await' -> трябва да е в Dispatcher!
+                AiAnalysisText = analysis;
+                if(success) IsAnalysisReady = true;
             
-        }
-        catch (Exception ex)
-        {
+            }
+            catch (Exception ex)
+            {
 
-            AiAnalysisText = $"Грешка при генерирането на анализ: {ex.Message}";
-            IsAnalysisReady = false;
-        }
+                AiAnalysisText = $"Грешка при генерирането на анализ: {ex.Message}";
+                IsAnalysisReady = false;
+            }
+        });
     }
 
-    private async void LoadSongDetails(string trackId)
+    private void LoadSongDetails(string trackId)
     {
-        try
+        Task.Run(async () =>
         {
-            var details = await _deezerService.GetTrackDetailsAsync(trackId);
-            if (details != null)
+            try
             {
-                ReleaseDate = $"Издадена: {details.ReleaseDate}";
-                AlbumCoverSmallUrl = details.Album?.CoverSmall;
-                AlbumCoverMediumUrl = details.Album?.CoverMedium;
-                AlbumCoverBigUrl = details.Album?.CoverBig;
+                var details = await _deezerService.GetTrackDetailsAsync(trackId);
+                if (details != null)
+                {
+                    ReleaseDate = $"Издадена: {details.ReleaseDate}";
+                    AlbumCoverSmallUrl = details.Album?.CoverSmall;
+                    AlbumCoverMediumUrl = details.Album?.CoverMedium;
+                    AlbumCoverBigUrl = details.Album?.CoverBig;
+                }
+                // Актуализираме основната снимка с по-голямата!
+                if (!string.IsNullOrWhiteSpace(AlbumCoverBigUrl))
+                {
+                    AlbumCoverUrl = AlbumCoverBigUrl;
+                }
             }
-            // Актуализираме основната снимка с по-голямата!
-            if (!string.IsNullOrWhiteSpace(AlbumCoverBigUrl))
+            catch (Exception ex)
             {
-                AlbumCoverUrl = AlbumCoverBigUrl;
+                ReleaseDate = $"Грешка при зареждане: {ex.Message}";
             }
-        }
-        catch (Exception ex)
-        {
-            ReleaseDate = $"Грешка при зареждане: {ex.Message}";
-        }
+        });
     }
 }

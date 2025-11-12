@@ -6,6 +6,7 @@ using System; // За Exception
 using System.IO; // За File
 using System.Net.Http; // За HttpClient
 using LyricsInsight.ViewModels; // За да "виждаме" ViewModel-a
+using Avalonia.Platform.Storage;
 
 namespace LyricsInsight.Views;
 
@@ -16,81 +17,49 @@ public partial class SongDetailsView : UserControl
         InitializeComponent();
         SaveLyricsButton.Click += SaveLyricsButton_Click;
         SaveAnalysisButton.Click += SaveAnalysisButton_Click;
-        SaveCoverSmallButton.Click += (s, e) => 
-            SaveCoverAsync(vm => vm.AlbumCoverSmallUrl, "(Small)");
+        // ДОБАВИ ТЕЗИ РЕДОВЕ:
+        SaveCoverSmallItem.Click += (s, e) => 
+            SaveCoverAsync(vm => vm.AlbumCoverSmallUrl, "(Малка 56x56)");
 
-        SaveCoverMediumButton.Click += (s, e) => 
-            SaveCoverAsync(vm => vm.AlbumCoverMediumUrl, "(Medium)");
+        SaveCoverMediumItem.Click += (s, e) => 
+            SaveCoverAsync(vm => vm.AlbumCoverMediumUrl, "(Средна 250x250)");
 
-        SaveCoverBigButton.Click += (s, e) => 
-            SaveCoverAsync(vm => vm.AlbumCoverBigUrl, "(Large)");
-    }
-    
-    // (Този метод идва след конструктора)
-
-// Приема функция, която взема URL-а от ViewModel-a, и суфикс за името
-    private async void SaveCoverAsync(Func<SongDetailsViewModel, string> getUrlFunc, string sizeSuffix)
-    {
-        var vm = this.DataContext as SongDetailsViewModel;
-        var url = getUrlFunc(vm); // Изпълнява функцията, за да вземе правилния URL
-
-        if (vm == null || string.IsNullOrWhiteSpace(url))
-        {
-            Console.WriteLine("Грешка: Няма URL за запазване.");
-            return; // Не прави нищо, ако няма URL
-        }
-
-        var saveDialog = new SaveFileDialog
-        {
-            Title = $"Запазване на Корица {sizeSuffix}",
-            InitialFileName = $"{vm.Artist} - {vm.Album} {sizeSuffix}.jpg",
-            Filters = { new FileDialogFilter { Name = "JPEG Image", Extensions = { "jpg", "jpeg" } } }
-        };
-
-        var window = (this.VisualRoot as Window);
-        var path = await saveDialog.ShowAsync(window);
-
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            try
-            {
-                var imageBytes = await _httpClient.GetByteArrayAsync(url);
-                await File.WriteAllBytesAsync(path, imageBytes);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving cover: {ex.Message}");
-            }
-        }
+        SaveCoverBigItem.Click += (s, e) => 
+            SaveCoverAsync(vm => vm.AlbumCoverBigUrl, "(Голяма 500x500)");
     }
     
     // СТАТИЧЕН HttpClient за изтегляне на корицата
     private static readonly HttpClient _httpClient = new HttpClient();
 
-    // МЕТОД 1: Запазване на ТЕКСТА
+    // МЕТОД 1: Запазване на ТЕКСТА (НОВ)
     private async void SaveLyricsButton_Click(object sender, RoutedEventArgs e)
     {
-        // 1. Вземи ViewModel-a
         var vm = this.DataContext as SongDetailsViewModel;
         if (vm == null || string.IsNullOrWhiteSpace(vm.LyricsText)) return;
 
-        // 2. Отвори диалога за запазване
-        var saveDialog = new SaveFileDialog
+        // 1. Вземи StorageProvider-а от TopLevel
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+        
+        // 2. Създай опциите за файла
+        var filePickerOptions = new FilePickerSaveOptions
         {
             Title = "Запазване на Текст",
-            InitialFileName = $"{vm.Artist} - {vm.Title}.txt",
-            Filters = { new FileDialogFilter { Name = "Text File", Extensions = { "txt" } } }
+            SuggestedFileName = $"{vm.Artist} - {vm.Title}.txt",
+            FileTypeChoices = new[] { FilePickerFileTypes.TextPlain }
         };
 
-        var window = (this.VisualRoot as Window); // Вземи прозореца
-        var path = await saveDialog.ShowAsync(window); // Подай прозореца
+        // 3. Отвори диалога
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(filePickerOptions);
 
-        // 3. Запиши файла
-        if (!string.IsNullOrWhiteSpace(path))
+        if (file != null)
         {
             try
             {
-                await File.WriteAllTextAsync(path, vm.LyricsText);
+                // 4. Запиши във файла (по новия начин)
+                await using var stream = await file.OpenWriteAsync();
+                await using var streamWriter = new StreamWriter(stream, System.Text.Encoding.UTF8);
+                await streamWriter.WriteAsync(vm.LyricsText);
             }
             catch (Exception ex)
             {
@@ -98,28 +67,38 @@ public partial class SongDetailsView : UserControl
             }
         }
     }
-    
-    // МЕТОD 2: Запазване на АНАЛИЗА
+
+    // МЕТОД 2: Запазване на АНАЛИЗА (НОВ)
     private async void SaveAnalysisButton_Click(object sender, RoutedEventArgs e)
     {
         var vm = this.DataContext as SongDetailsViewModel;
         if (vm == null || string.IsNullOrWhiteSpace(vm.AiAnalysisText)) return;
 
-        var saveDialog = new SaveFileDialog
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        // "md" не е стандартен тип, затова го дефинираме ръчно
+        var mdFileType = new FilePickerFileType("Markdown File")
         {
-            Title = "Запазване на Анализ",
-            InitialFileName = $"{vm.Artist} - {vm.Title} (Анализ).md",
-            Filters = { new FileDialogFilter { Name = "Markdown File", Extensions = { "md" } } }
+            Patterns = new[] { "*.md" }
         };
 
-        var window = (this.VisualRoot as Window); // Вземи прозореца
-        var path = await saveDialog.ShowAsync(window); // Подай прозореца
+        var filePickerOptions = new FilePickerSaveOptions
+        {
+            Title = "Запазване на Анализ",
+            SuggestedFileName = $"{vm.Artist} - {vm.Title} (Анализ).md",
+            FileTypeChoices = new[] { mdFileType }
+        };
 
-        if (!string.IsNullOrWhiteSpace(path))
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(filePickerOptions);
+
+        if (file != null)
         {
             try
             {
-                await File.WriteAllTextAsync(path, vm.AiAnalysisText);
+                await using var stream = await file.OpenWriteAsync();
+                await using var streamWriter = new StreamWriter(stream, System.Text.Encoding.UTF8);
+                await streamWriter.WriteAsync(vm.AiAnalysisText);
             }
             catch (Exception ex)
             {
@@ -128,30 +107,40 @@ public partial class SongDetailsView : UserControl
         }
     }
 
-// МЕТОД 3: Запазване на КОРИЦАТА
-    private async void SaveCoverButton_Click(object sender, RoutedEventArgs e)
+    // МЕТОД 3: Запазване на КОРИЦАТА (НОВ)
+    private async void SaveCoverAsync(Func<SongDetailsViewModel, string> getUrlFunc, string sizeSuffix)
     {
         var vm = this.DataContext as SongDetailsViewModel;
-        if (vm == null || string.IsNullOrWhiteSpace(vm.AlbumCoverUrl)) return;
+        var url = getUrlFunc(vm);
 
-        var saveDialog = new SaveFileDialog
+        if (vm == null || string.IsNullOrWhiteSpace(url))
         {
-            Title = "Запазване на Корица",
-            InitialFileName = $"{vm.Artist} - {vm.Album}.jpg", // По подразбиране .jpg
-            Filters = { new FileDialogFilter { Name = "JPEG Image", Extensions = { "jpg", "jpeg" } } }
+            Console.WriteLine("Грешка: Няма URL за запазване.");
+            return;
+        }
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        var filePickerOptions = new FilePickerSaveOptions
+        {
+            Title = $"Запазване на Корица {sizeSuffix}",
+            SuggestedFileName = $"{vm.Artist} - {vm.Album} {sizeSuffix}.jpg",
+            FileTypeChoices = new[] { FilePickerFileTypes.ImageJpg }
         };
 
-        var window = (this.VisualRoot as Window); // Вземи прозореца
-        var path = await saveDialog.ShowAsync(window); // Подай прозореца
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(filePickerOptions);
 
-        if (!string.IsNullOrWhiteSpace(path))
+        if (file != null)
         {
             try
             {
-                // 1. Изтегли байтовете от URL-а
-                var imageBytes = await _httpClient.GetByteArrayAsync(vm.AlbumCoverUrl);
-                // 2. Запиши ги във файла
-                await File.WriteAllBytesAsync(path, imageBytes);
+                // 1. Изтегли байтовете (както преди)
+                var imageBytes = await _httpClient.GetByteArrayAsync(url);
+                
+                // 2. Запиши байтовете в stream-а (по новия начин)
+                await using var stream = await file.OpenWriteAsync();
+                await stream.WriteAsync(imageBytes);
             }
             catch (Exception ex)
             {

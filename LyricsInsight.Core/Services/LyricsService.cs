@@ -1,6 +1,7 @@
 using LyricsScraperNET;
 using LyricsScraperNET.Models.Requests;
 using System.Threading.Tasks;
+using LyricsInsight.Core.Models;
 
 namespace LyricsInsight.Core;
 
@@ -20,7 +21,7 @@ namespace LyricsInsight.Core;
         /// <param name="artist">Изпълнител</param>
         /// <param name="song">Заглавие на песента</param>
         /// <returns>Текстът на песента като string, или null, ако не е намерен.</returns>
-        public async Task<string> GetLyricsAsync(string artist, string song)
+        public async Task<LyricsResult> GetLyricsAsync(string artist, string song)
         {
             var request = new ArtistAndSongSearchRequest(artist, song);
             var result = await _scraperClient.SearchLyricAsync(request);
@@ -30,6 +31,10 @@ namespace LyricsInsight.Core;
                 return null;
             }
 
-            return result.LyricText;
+            return new LyricsResult
+            {
+                Text = result.LyricText,
+                Source = result.ExternalProviderType.ToString() // <-- ЕТО Я МАГИЯТА!
+            };
         }
     }

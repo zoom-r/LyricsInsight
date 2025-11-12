@@ -5,11 +5,8 @@
              xmlns:vm="using:LyricsInsight.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              Title="LyricsInsight"
-             TransparencyLevelHint="AcrylicBlur"
-             Background="Transparent"
              ExtendClientAreaToDecorationsHint="True"
-             x:Class="LyricsInsight.Views.MainWindow"
-             x:DataType="vm:MainWindowViewModel">
+             x:Class="LyricsInsight.Views.MainView"
+             x:DataType="vm:MainViewModel">
      <ContentControl Content="{Binding CurrentView}" />
-
 </Window>

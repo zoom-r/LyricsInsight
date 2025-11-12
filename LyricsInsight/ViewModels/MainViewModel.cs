@@ -7,7 +7,7 @@ using ReactiveUI; // За ViewModelBase и RaiseAndSetIfChanged
 
 namespace LyricsInsight.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainViewModel : ViewModelBase
     {
         // Това пропърти ще "държи" текущия изглед (ViewModel), който искаме да покажем.
         private ViewModelBase _currentView;
@@ -21,7 +21,7 @@ namespace LyricsInsight.ViewModels
         private readonly LyricsService _lyricsService;
         private readonly GenAiService _genAiService;
         private readonly SearchViewModel _searchVM;
-        public MainWindowViewModel()
+        public MainViewModel()
         {
             _deezerService = new DeezerService();
             _lyricsService = new LyricsService();
@@ -50,6 +50,7 @@ namespace LyricsInsight.ViewModels
         // 8. Нов метод, който просто връща стария изглед
         private void NavigateToSearch()
         {
+            _searchVM.SelectedSong = null;
             CurrentView = _searchVM;
         }
     }

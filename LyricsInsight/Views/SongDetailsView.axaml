@@ -5,61 +5,86 @@
              xmlns:vm="using:LyricsInsight.ViewModels"
              xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
              xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
+             xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="LyricsInsight.Views.SongDetailsView"
              x:DataType="vm:SongDetailsViewModel">
     
-    <Grid ColumnDefinitions="300, *">
+    <Grid ColumnDefinitions="300, *" Margin="0, 20, 0, 0">
         
         <StackPanel Grid.Column="0" Margin="15">
             
             <Button Command="{Binding BackCommand}"
-                HorizontalAlignment="Stretch" Margin="0,0,0,10" >
-                ← Назад към търсенето
+                HorizontalAlignment="Left" Margin="0,0,0,10" 
+                Background="Transparent" CornerRadius="20"
+                BorderBrush="Gray" BorderThickness="1">
+                ← Назад
             </Button>
                 
-            <Image asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverUrl}" Width="270" Height="270"/>
+            <Border CornerRadius="20" BorderThickness="0" ClipToBounds="True">
+                <Image asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverUrl}" 
+                       Width="270" Height="270"/>
+            </Border>
             
             <TextBlock Text="{Binding Title}" 
                        FontSize="20" FontWeight="Bold" TextWrapping="Wrap" Margin="0,10,0,0"/>
             <TextBlock Text="{Binding Artist}" 
                        FontSize="16" Opacity="0.8"/>
-            <TextBlock Text="{Binding ReleaseDate}" FontSize="12" Opacity="0.7" Margin="0,10,0,0"/>
+            <TextBlock Text="{Binding Album}" 
+                       FontSize="12" Opacity="0.7" Margin="0,10,0,0"/>
+            <TextBlock Text="{Binding ReleaseDate}" 
+                       FontSize="12" Opacity="0.7"/>
             
             <Separator Margin="0,15"/>
-            <Label>Изтегляне:</Label>
-    
+            <Label Margin="5">Изтегляне:</Label>
+            
             <Button x:Name="SaveLyricsButton"
                     Content="Запази Текст (.txt)"
-                    HorizontalAlignment="Stretch" Margin="0,5,0,0"/>
+                    HorizontalAlignment="Stretch" Margin="5"
+                    Background="Transparent" CornerRadius="20"
+                    BorderBrush="Gray" BorderThickness="1"/>
     
             <Button x:Name="SaveAnalysisButton"
                     Content="Запази Анализ (.md)"
                     IsEnabled="{Binding IsAnalysisReady}"
-                    HorizontalAlignment="Stretch" Margin="0,5,0,0"/>
+                    HorizontalAlignment="Stretch" Margin="5"
+                    Background="Transparent" CornerRadius="20"
+                    BorderBrush="Gray" BorderThickness="1"/>
     
-            <Grid ColumnDefinitions="*,*,*" Margin="0,5,0,0">
-                <Button x:Name="SaveCoverSmallButton" Grid.Column="0" Content="Корица (S)" HorizontalAlignment="Stretch"/>
-                <Button x:Name="SaveCoverMediumButton" Grid.Column="1" Content="Корица (M)" HorizontalAlignment="Stretch"/>
-                <Button x:Name="SaveCoverBigButton" Grid.Column="2" Content="Корица (L)" HorizontalAlignment="Stretch"/>
-            </Grid>
+            <Button Content="Запази Корица (.jpg)"
+                    HorizontalAlignment="Stretch"
+                    Margin="5"
+                    Background="Transparent" CornerRadius="20"
+                    BorderBrush="Gray" BorderThickness="1">
+                <Button.Flyout>
+                    <MenuFlyout>
+                        <MenuItem Header="Малка (56x56)" x:Name="SaveCoverSmallItem"/>
+                        <MenuItem Header="Средна (250x250)" x:Name="SaveCoverMediumItem"/>
+                        <MenuItem Header="Голяма (500x500)" x:Name="SaveCoverBigItem"/>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
         </StackPanel>
         
         <TabControl Grid.Column="1" Margin="0,10,10,10">
             <TabItem Header="Текст">
                 <TextBox Text="{Binding LyricsText}"
                          IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"/>
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"
+                         BorderThickness="0" TextAlignment="Center" FontSize="20"
+                         Focusable="False"/>
             </TabItem>
             
             <TabItem Header="AI Анализ">
                 <md:MarkdownScrollViewer Markdown="{Binding AiAnalysisText}"
-                                 Margin="5" />
+                                 Margin="5" Focusable="False">
+                    <md:MarkdownScrollViewer.Styles>
+                        <Style Selector="ctxt|CTextBlock">
+                            <Setter Property="FontSize" Value="20"></Setter>
+                        </Style>
+                    </md:MarkdownScrollViewer.Styles>
+                </md:MarkdownScrollViewer>
             </TabItem>
-            
-            <TabItem Header="Чат с AI" IsEnabled="False">
-            </TabItem>
-            
         </TabControl>
     </Grid>
 </UserControl>

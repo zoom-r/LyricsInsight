@@ -29,19 +29,23 @@ namespace LyricsInsight.Core.Services
         }
 
         // 3. Асинхронен метод, който нашият ViewModel ще вика
-        public async Task<string> GenerateAnalysisAsync(string lyrics, string song, string artist)
+        public async Task<(string, bool)> GenerateAnalysisAsync(string lyrics, string song, string artist, string album)
         {
             // 4. Това е Prompt-ът! 
             // Тук казваме на AI какво точно искаме, на български.
-            var prompt = $@"Ти си експертен музикален анализатор. Анализирай следния текст на песен. Фокусирай се върху:
+            var prompt = $@"Ти си експертен музикален анализатор. Анализирай следната песен, използвайки текста на песента и информация, която имаш от интернет. 
+            Отговори директно с анализа. Формулирай го професионално.
+            Фокусирай се върху:
             1. Основната тема и значение.
             2. Емоциите и настроението.
             3. Всички забележителни метафори или образи.
             4. Дали има референции към други хора, песни...
-            Отговори на български език, сякаш обясняваш на приятел.
+            5. Мястото на песента в албума (ако участва в албум - не говорим за това, ако е публикувана само като single)
+            Отговори на български език.
             
             Име на песента: {song}
             Име на артиста: {artist}
+            Име на Албума/EP-то/Single-а: {album}
             Текст на песента:
             ---
             {lyrics}
@@ -56,15 +60,17 @@ namespace LyricsInsight.Core.Services
                 // Проверяваме дали има текст в отговора
                 if (response.Candidates.Any() && response.Candidates.First().Content.Parts.Any())
                 {
-                    return response.Candidates.First().Content.Parts.First().Text;
+                    return (response.Candidates.First().Content.Parts.First().Text, true);
                 }
                 
-                return "AI моделът не върна отговор.";
+                return ("AI моделът не върна отговор.", false);
             }
             catch (Exception ex)
             {
+                if (ex is ServerError)
+                    return ("Има проблем със сървърите на Google GenAI. Моля, опитайте отново по-късно.", false);
                 // Връщаме съобщението за грешка, за да го видим в UI-я
-                return $"Грешка при извикването на Google GenAI: {ex.Message}";
+                return ($"Грешка при извикването на Google GenAI: {ex.Message}", false);
             }
         }
     }
