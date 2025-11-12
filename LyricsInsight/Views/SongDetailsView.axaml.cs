@@ -7,6 +7,9 @@ using System.IO; // За File
 using System.Net.Http; // За HttpClient
 using LyricsInsight.ViewModels; // За да "виждаме" ViewModel-a
 using Avalonia.Platform.Storage;
+using Markdown2Pdf;
+using System.Text;
+using Markdown2Pdf.Options;
 
 namespace LyricsInsight.Views;
 
@@ -77,32 +80,60 @@ public partial class SongDetailsView : UserControl
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel == null) return;
 
-        // "md" не е стандартен тип, затова го дефинираме ръчно
-        var mdFileType = new FilePickerFileType("Markdown File")
+        // 2. Дефинираме PDF типа
+        var pdfFileType = new FilePickerFileType("PDF Document")
         {
-            Patterns = new[] { "*.md" }
+            Patterns = new[] { "*.pdf" }
         };
 
         var filePickerOptions = new FilePickerSaveOptions
         {
             Title = "Запазване на Анализ",
-            SuggestedFileName = $"{vm.Artist} - {vm.Title} (Анализ).md",
-            FileTypeChoices = new[] { mdFileType }
+            SuggestedFileName = $"{vm.Artist} - {vm.Title} (Анализ).pdf", // <-- .pdf
+            FileTypeChoices = new[] { pdfFileType } // <-- PDF тип
         };
 
+        // 3. Отваряме диалога
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(filePickerOptions);
-
-        if (file != null)
+        if(file == null ) return;
+        string tempMdPath = null; // Пътят до нашия временен .md файл
+    
+        try
         {
-            try
+            // Вземаме Markdown текста
+            var markdown = vm.AiAnalysisText;
+        
+            // Вземаме пътя, където потребителят иска да запази PDF-а
+            var outputPdfPath = file.Path.LocalPath;
+
+            // Създаваме уникално име за временен .md файл
+            tempMdPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.md");
+
+            // Записваме нашия Markdown във временния файл
+            await File.WriteAllTextAsync(tempMdPath, markdown, Encoding.UTF8);
+            
+            var options = new Markdown2PdfOptions {
+                HeaderHtml = "<div class=\"document-title\" width: 100%; padding: 5px\"></div>",
+                FooterHtml = "<div style=\"width: 100%; padding: 5px;\"><span class=\"pageNumber\" align=\"left\"></span>/<span class=\"totalPages\"></span></div>",
+                MarginOptions = new MarginOptions(){Bottom = "30", Left = "30", Right = "30", Top = "30"}
+            };
+            // Създаваме конвертора
+            var converter = new Markdown2PdfConverter(options);
+
+            // Казваме на конвертора:
+            // "Прочети от ТОЗИ .md файл и го запиши в ТОЗИ .pdf файл"
+            await converter.Convert(tempMdPath, outputPdfPath);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving PDF analysis: {ex.Message}");
+        }
+        finally
+        {
+            // 3. (МНОГО ВАЖНО) Почистваме временния файл
+            if (tempMdPath != null && File.Exists(tempMdPath))
             {
-                await using var stream = await file.OpenWriteAsync();
-                await using var streamWriter = new StreamWriter(stream, System.Text.Encoding.UTF8);
-                await streamWriter.WriteAsync(vm.AiAnalysisText);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving analysis: {ex.Message}");
+                File.Delete(tempMdPath);
             }
         }
     }

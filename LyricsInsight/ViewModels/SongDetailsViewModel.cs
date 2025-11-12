@@ -86,7 +86,7 @@ public class SongDetailsViewModel : ViewModelBase
         Title = selectedSong.Title;
         Artist = selectedSong.Artist;
         AlbumCoverUrl = selectedSong.AlbumCoverUrl; // Ще вземем по-голяма снимка по-късно
-        Album = $"Албум: {selectedSong.Album}";
+        Album = selectedSong.Album;
         IsAnalysisReady = false;
         // --- ВРЕМЕННО: ФАЛШИВИ ДАННИ ---
         // Ще заредим истинските данни от Genius/OpenAI в следващите стъпки.

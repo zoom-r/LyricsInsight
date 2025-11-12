@@ -17,23 +17,62 @@ namespace LyricsInsight.ViewModels
             set => this.RaiseAndSetIfChanged(ref _currentView, value);
         }
         
-        private readonly DeezerService _deezerService;
-        private readonly LyricsService _lyricsService;
-        private readonly GenAiService _genAiService;
-        private readonly SearchViewModel _searchVM;
+        private readonly SettingsService _settingsService;
+        private DeezerService _deezerService;
+        private LyricsService _lyricsService;
+        private GenAiService _genAiService;
+        private SearchViewModel _searchVM;
         public MainViewModel()
         {
-            _deezerService = new DeezerService();
-            _lyricsService = new LyricsService();
-            _genAiService = new GenAiService();
-            // Създаваме SearchViewModel
+            _settingsService = new SettingsService();
+            InitializeApplication();
+        }
+        
+        private async void InitializeApplication()
+        {
+            // Опитай да заредиш ключа от файла
+            var savedKey = await _settingsService.LoadKeyAsync();
+
+            if (string.IsNullOrWhiteSpace(savedKey))
+            {
+                // НЯМА КЛЮЧ: Показваме екрана за въвеждане
+                // Подаваме му "callback" към метода InitializeAppServices
+                CurrentView = new ApiKeyViewModel(_settingsService, InitializeAppServices);
+            }
+            else
+            {
+                // ИМА КЛЮЧ: Директно инициализираме приложението
+                InitializeAppServices(savedKey);
+            }
+        }
+        
+        private void InitializeAppServices(string apiKey)
+        {
+            // Вече имаме ключ! Инициализираме всички сервизи
+            try
+            {
+                _deezerService = new DeezerService();
+                _lyricsService = new LyricsService();
+                _genAiService = new GenAiService(apiKey); // Подаваме ключа тук!
+            }
+            catch (Exception ex)
+            {
+                // Ако ключът е грешен, GenAiService ще гръмне.
+                // Връщаме потребителя обратно да въведе нов ключ.
+                CurrentView = new ApiKeyViewModel(_settingsService, InitializeAppServices);
+                // (Тук можем да добавим съобщение за грешка)
+                return;
+            }
+            
+            // Създаваме SearchVM (вече можем)
             _searchVM = new SearchViewModel(_deezerService);
 
-            // "Абонираме" се за неговия сигнал OnSongSelected
+            // Абонираме се за навигацията
             _searchVM.OnSongSelected
-                .ObserveOn(RxApp.MainThreadScheduler) // Увери се, че сме на UI нишката
-                .Subscribe((SongSearchResult song) => NavigateToSongDetails(song)); // Когато получим сигнал, викай този метод
-            // При стартиране, задаваме текущия изглед да бъде SearchViewModel.
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe((SongSearchResult song) => NavigateToSongDetails(song)); 
+
+            // Показваме търсачката
             CurrentView = _searchVM;
         }
         

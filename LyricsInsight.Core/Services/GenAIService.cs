@@ -11,16 +11,12 @@ namespace LyricsInsight.Core.Services
     {
         private readonly Client _geminiModel;
 
-        public GenAiService()
+        public GenAiService(string apiKey)
         {
-            // 1. Прочитаме ключа от променливата на средата
-            var apiKey = System.Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                // Хвърляме грешка, ако ключът не е настроен
-                throw new InvalidOperationException(
-                    "API ключът за Google GenAI не е намерен. " +
-                    "Моля, задайте 'GOOGLE_API_KEY' като променлива на средата.");
+                throw new ArgumentNullException(nameof(apiKey), 
+                    "API ключът за GenAiService не може да бъде празен.");
             }
 
             // 2. Инициализираме модела.
