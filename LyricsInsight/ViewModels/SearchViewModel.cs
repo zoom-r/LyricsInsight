@@ -12,8 +12,8 @@ namespace LyricsInsight.ViewModels
     {
         // Поле, в което да пазим "инжекторания" сервиз
         private readonly DeezerService _service;
-        private SongSearchResult _selectedSong;
-        public SongSearchResult SelectedSong
+        private DeezerTrack _selectedSong;
+        public DeezerTrack SelectedSong
         {
             get => _selectedSong;
             set => this.RaiseAndSetIfChanged(ref _selectedSong, value);
@@ -21,7 +21,7 @@ namespace LyricsInsight.ViewModels
 
         // --- 2. ДОБАВИ ТОВА ПРОПЪРТИ ---
         // То казва на света: "Хей, потребителят избра песен!"
-        public IObservable<SongSearchResult> OnSongSelected { get; }
+        public IObservable<DeezerTrack> OnSongSelected { get; }
         private string _searchQuery;
         public string SearchQuery
         {
@@ -29,7 +29,7 @@ namespace LyricsInsight.ViewModels
             set => this.RaiseAndSetIfChanged(ref _searchQuery, value);
         }
 
-        public ObservableCollection<SongSearchResult> SearchResults { get; } = new();
+        public ObservableCollection<DeezerTrack> SearchResults { get; } = new();
 
         // Конструкторът вече ПРИЕМА DeezerApiService
         public SearchViewModel(DeezerService service)

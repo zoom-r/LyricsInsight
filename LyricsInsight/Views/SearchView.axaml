@@ -73,11 +73,11 @@
             </ListBox.ItemsPanel>
     
             <ListBox.ItemTemplate>
-                <DataTemplate DataType="m:SongSearchResult">
+                <DataTemplate DataType="m:DeezerTrack">
                     <Grid ColumnDefinitions="Auto, *" Margin="5, 0, 5, 0">
                         <Border CornerRadius="20" BorderThickness="0" ClipToBounds="True">
                             <Image Width="150" Height="150" 
-                                   asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverUrl}"/>
+                                   asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverMedium}"/>
                         </Border>
                 
                         <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">

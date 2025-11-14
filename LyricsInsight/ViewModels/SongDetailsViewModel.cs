@@ -14,7 +14,6 @@ public class SongDetailsViewModel : ViewModelBase
     // Пропъртита за всичко, което ще показваме в UI-я
     private readonly LyricsService _lyricsService;
     private readonly GenAiService _genAiService;
-    private readonly DeezerService _deezerService;
     
     public ICommand BackCommand { get; }
     
@@ -76,17 +75,21 @@ public class SongDetailsViewModel : ViewModelBase
     }
     
     // Конструктор, който приема избраната песен
-    public SongDetailsViewModel(SongSearchResult selectedSong,  LyricsService lyricsService, GenAiService genAiService, DeezerService deezerService, Action onGoBack)
+    public SongDetailsViewModel(DeezerTrack selectedSong,  LyricsService lyricsService, GenAiService genAiService, Action onGoBack)
     {
         _lyricsService = lyricsService;
         _genAiService = genAiService;
-        _deezerService = deezerService;
+        
         BackCommand = ReactiveCommand.Create(onGoBack, outputScheduler: RxApp.MainThreadScheduler);
         // Попълваме данните, които вече имаме от търсенето
         Title = selectedSong.Title;
         Artist = selectedSong.Artist;
-        AlbumCoverUrl = selectedSong.AlbumCoverUrl; // Ще вземем по-голяма снимка по-късно
-        Album = selectedSong.Album;
+        AlbumCoverUrl = selectedSong.AlbumCoverLarge; // Ще вземем по-голяма снимка по-късно
+        Album = selectedSong.AlbumTitle;
+        AlbumCoverSmallUrl = selectedSong.AlbumCoverSmall;
+        AlbumCoverMediumUrl = selectedSong.AlbumCoverMedium;
+        AlbumCoverBigUrl = selectedSong.AlbumCoverLarge;
+        ReleaseDate = "Издадена: " + selectedSong.ReleaseDate;
         IsAnalysisReady = false;
         // --- ВРЕМЕННО: ФАЛШИВИ ДАННИ ---
         // Ще заредим истинските данни от Genius/OpenAI в следващите стъпки.
@@ -94,7 +97,6 @@ public class SongDetailsViewModel : ViewModelBase
         // Задаваме "Зареждане..." съобщения
         LyricsText = "Зареждане на текста...";
         AiAnalysisText = "Очаква се текстът, за да започне анализ...";
-        LoadSongDetails(selectedSong.Id);
         LoadLyrics();
     }
     
@@ -154,33 +156,6 @@ public class SongDetailsViewModel : ViewModelBase
 
                 AiAnalysisText = $"Грешка при генерирането на анализ: {ex.Message}";
                 IsAnalysisReady = false;
-            }
-        });
-    }
-
-    private void LoadSongDetails(string trackId)
-    {
-        Task.Run(async () =>
-        {
-            try
-            {
-                var details = await _deezerService.GetTrackDetailsAsync(trackId);
-                if (details != null)
-                {
-                    ReleaseDate = $"Издадена: {details.ReleaseDate}";
-                    AlbumCoverSmallUrl = details.Album?.CoverSmall;
-                    AlbumCoverMediumUrl = details.Album?.CoverMedium;
-                    AlbumCoverBigUrl = details.Album?.CoverBig;
-                }
-                // Актуализираме основната снимка с по-голямата!
-                if (!string.IsNullOrWhiteSpace(AlbumCoverBigUrl))
-                {
-                    AlbumCoverUrl = AlbumCoverBigUrl;
-                }
-            }
-            catch (Exception ex)
-            {
-                ReleaseDate = $"Грешка при зареждане: {ex.Message}";
             }
         });
     }
