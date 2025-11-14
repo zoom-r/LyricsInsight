@@ -74,6 +74,20 @@ public class SongDetailsViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _isAnalysisReady, value);
     }
     
+    private bool _isLoadingLyrics;
+    public bool IsLoadingLyrics
+    {
+        get => _isLoadingLyrics;
+        set => this.RaiseAndSetIfChanged(ref _isLoadingLyrics, value);
+    }
+
+    private bool _isLoadingAnalysis;
+    public bool IsLoadingAnalysis
+    {
+        get => _isLoadingAnalysis;
+        set => this.RaiseAndSetIfChanged(ref _isLoadingAnalysis, value);
+    }
+    
     // Конструктор, който приема избраната песен
     public SongDetailsViewModel(DeezerTrack selectedSong,  LyricsService lyricsService, GenAiService genAiService, Action onGoBack)
     {
@@ -91,12 +105,14 @@ public class SongDetailsViewModel : ViewModelBase
         AlbumCoverBigUrl = selectedSong.AlbumCoverLarge;
         ReleaseDate = "Издадена: " + selectedSong.ReleaseDate;
         IsAnalysisReady = false;
+        IsLoadingAnalysis = true;
+        IsLoadingLyrics = true;
         // --- ВРЕМЕННО: ФАЛШИВИ ДАННИ ---
         // Ще заредим истинските данни от Genius/OpenAI в следващите стъпки.
         // Засега слагаме фалшив текст, за да тестваме UI-я.
         // Задаваме "Зареждане..." съобщения
-        LyricsText = "Зареждане на текста...";
-        AiAnalysisText = "Очаква се текстът, за да започне анализ...";
+        //LyricsText = "Зареждане на текста...";
+        //AiAnalysisText = "Очаква се текстът, за да започне анализ...";
         LoadLyrics();
     }
     
@@ -108,13 +124,14 @@ public class SongDetailsViewModel : ViewModelBase
             {
                 // Това се случва на фонова нишка (OK)
                 var lyricsResult = await _lyricsService.GetLyricsAsync(Artist, Title);
-
+                IsLoadingLyrics = false;
                 // Това е UI ъпдейт -> трябва да е в Dispatcher!
             
                 if (lyricsResult == null || string.IsNullOrWhiteSpace(lyricsResult.Text))
                 {
                     LyricsText = "За съжаление текстът на песента не беше намерен.";
                     AiAnalysisText = "Няма текст, върху който да се извърши анализ.";
+                    IsLoadingAnalysis = false;
                 }
                 else
                 {
@@ -130,6 +147,8 @@ public class SongDetailsViewModel : ViewModelBase
             {
                 LyricsText = $"Възникна грешка при зареждането на текста: {ex.Message}";
                 AiAnalysisText = "Анализът не може да продължи.";
+                IsLoadingAnalysis = false;
+                IsLoadingLyrics = false;
             }
         });
     }
@@ -141,11 +160,11 @@ public class SongDetailsViewModel : ViewModelBase
             try
             {
                 // Този ъпдейт е OK, защото е ПРЕДИ 'await'-а
-                AiAnalysisText = "Генериране на AI анализ... (това може да отнеме няколко секунди)";
+                //AiAnalysisText = "Генериране на AI анализ... (това може да отнеме няколко секунди)";
         
                 // Това се случва на фонова нишка (OK)
                 var (analysis, success) = await _genAiService.GenerateAnalysisAsync(lyricsToAnalyze, Title, Artist, Album);
-        
+                IsLoadingAnalysis = false;
                 // Това е UI ъпдейт СЛЕД 'await' -> трябва да е в Dispatcher!
                 AiAnalysisText = analysis;
                 if(success) IsAnalysisReady = true;
@@ -156,6 +175,7 @@ public class SongDetailsViewModel : ViewModelBase
 
                 AiAnalysisText = $"Грешка при генерирането на анализ: {ex.Message}";
                 IsAnalysisReady = false;
+                IsLoadingAnalysis = false;
             }
         });
     }

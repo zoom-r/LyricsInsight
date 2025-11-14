@@ -6,6 +6,7 @@
              xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
              xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
              xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
+             xmlns:progRing="clr-namespace:AvaloniaProgressRing;assembly=AvaloniaProgressRing"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="LyricsInsight.Views.SongDetailsView"
              x:DataType="vm:SongDetailsViewModel">
@@ -69,22 +70,36 @@
         
         <TabControl Grid.Column="1" Margin="0,10,10,10">
             <TabItem Header="Текст">
-                <TextBox Text="{Binding LyricsText}"
-                         IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"
-                         BorderThickness="0" TextAlignment="Center" FontSize="20"
-                         Focusable="False"/>
+                <Grid>
+                    <progRing:ProgressRing IsActive="{Binding IsLoadingLyrics}"
+                                  Width="80" Height="80"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Foreground="Gray"/>
+                    <TextBox Text="{Binding LyricsText}"
+                             IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"
+                             BorderThickness="0" TextAlignment="Center" FontSize="20"
+                             Focusable="False"/>
+                </Grid>
             </TabItem>
             
             <TabItem Header="AI Анализ">
-                <md:MarkdownScrollViewer Markdown="{Binding AiAnalysisText}"
-                                 Margin="5" Focusable="False">
-                    <md:MarkdownScrollViewer.Styles>
-                        <Style Selector="ctxt|CTextBlock">
-                            <Setter Property="FontSize" Value="20"></Setter>
-                        </Style>
-                    </md:MarkdownScrollViewer.Styles>
-                </md:MarkdownScrollViewer>
+                <Grid>
+                    <progRing:ProgressRing IsActive="{Binding IsLoadingAnalysis}"
+                                                       Width="80" Height="80"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"/>
+                    <md:MarkdownScrollViewer Markdown="{Binding AiAnalysisText}"
+                                             Margin="5" Focusable="False">
+                        <md:MarkdownScrollViewer.Styles>
+                            <Style Selector="ctxt|CTextBlock">
+                                <Setter Property="FontSize" Value="20"></Setter>
+                            </Style>
+                        </md:MarkdownScrollViewer.Styles>
+                    </md:MarkdownScrollViewer>
+                </Grid>
             </TabItem>
         </TabControl>
     </Grid>

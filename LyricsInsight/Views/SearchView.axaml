@@ -5,6 +5,7 @@
              xmlns:vm="using:LyricsInsight.ViewModels"
              xmlns:m="using:LyricsInsight.Core.Models"
              xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:avaloniaProgressRing="clr-namespace:AvaloniaProgressRing;assembly=AvaloniaProgressRing"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="LyricsInsight.Views.SearchView"
              x:DataType="vm:SearchViewModel">
@@ -47,46 +48,52 @@
             </TextBox.Styles>
         </TextBox>
         
-        <ListBox Grid.Row="2"
-                 Margin="10,0,10,10"
-                 ItemsSource="{Binding SearchResults}"
-                 SelectedItem="{Binding SelectedSong, Mode=TwoWay}"
-                 Background="Transparent"
-                 HorizontalAlignment="Stretch">
-    
-            <ListBox.Styles>
-                <Style Selector="ListBoxItem">
-                    <Setter Property="CornerRadius" Value="20"/>
-                    <Setter Property="ClipToBounds" Value="True"/>
-                </Style>
+        <Grid Grid.Row="2" Margin="10,0,10,10">
+            <avaloniaProgressRing:ProgressRing IsActive="{Binding IsLoadingResults}"
+                                               Width="80" Height="80"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Margin="0,50,0,0"
+                                               Foreground="Gray"/>
+            <ListBox IsVisible="{Binding !IsLoadingResults}"
+                     ItemsSource="{Binding SearchResults}"
+                     SelectedItem="{Binding SelectedSong, Mode=TwoWay}"
+                     Background="Transparent"
+                     HorizontalAlignment="Stretch">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="CornerRadius" Value="20"/>
+                        <Setter Property="ClipToBounds" Value="True"/>
+                    </Style>
 
-                <Style Selector="ListBoxItem:pointerover">
-                    <Setter Property="Background" Value="#22FFFFFF"/> </Style>
+                    <Style Selector="ListBoxItem:pointerover">
+                        <Setter Property="Background" Value="#22FFFFFF"/> </Style>
 
-                <Style Selector="ListBoxItem:selected">
-                    <Setter Property="Background" Value="#44FFFFFF"/> </Style>
-            </ListBox.Styles>
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Columns="3"/>
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-    
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="m:DeezerTrack">
-                    <Grid ColumnDefinitions="Auto, *" Margin="5, 0, 5, 0">
-                        <Border CornerRadius="20" BorderThickness="0" ClipToBounds="True">
-                            <Image Width="150" Height="150" 
-                                   asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverMedium}"/>
-                        </Border>
-                
-                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Title}" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding Artist}" FontSize="12"/>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                    <Style Selector="ListBoxItem:selected">
+                        <Setter Property="Background" Value="#44FFFFFF"/> </Style>
+                </ListBox.Styles>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="3"/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+        
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="m:DeezerTrack">
+                        <Grid ColumnDefinitions="Auto, *" Margin="5, 0, 5, 0">
+                            <Border CornerRadius="20" BorderThickness="0" ClipToBounds="True">
+                                <Image Width="150" Height="150" 
+                                       asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverMedium}"/>
+                            </Border>
+                    
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding Artist}" FontSize="12"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
     </Grid>
 </UserControl>

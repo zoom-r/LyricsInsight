@@ -1,4 +1,5 @@
-using System; // За TimeSpan
+using System;
+using System.Collections.Generic; // За TimeSpan
 using System.Collections.ObjectModel;
 using System.Linq; // За .Select()
 using System.Reactive.Linq; // КЛЮЧОВО! Това е за .Throttle, .SelectMany и др.
@@ -18,6 +19,13 @@ namespace LyricsInsight.ViewModels
             get => _selectedSong;
             set => this.RaiseAndSetIfChanged(ref _selectedSong, value);
         }
+        private bool _isLoadingResults;
+
+        public bool IsLoadingResults
+        {
+            get => _isLoadingResults;
+            set => this.RaiseAndSetIfChanged(ref _isLoadingResults, value);
+        }
 
         // --- 2. ДОБАВИ ТОВА ПРОПЪРТИ ---
         // То казва на света: "Хей, потребителят избра песен!"
@@ -34,38 +42,52 @@ namespace LyricsInsight.ViewModels
         // Конструкторът вече ПРИЕМА DeezerApiService
         public SearchViewModel(DeezerService service)
         {
-            _service = service; // Запазваме го
+            _service = service; 
+            IsLoadingResults = false; // Начална стойност
+    
             OnSongSelected = this.WhenAnyValue(vm => vm.SelectedSong)
-                .Where(song => song != null); // Само когато не е null
-            // --- ТОВА Е РЕАКТИВНАТА МАГИЯ ---
-            
-            // "WhenAnyValue" казва: "Винаги, когато пропъртито 'SearchQuery' се промени..."
-            this.WhenAnyValue(vm => vm.SearchQuery)
-                // "...изчакай 500 милисекунди, след като потребителят спре да пише."
-                // (Това спира спама към API-то при всяка буква)
+                .Where(song => song != null);
+
+            // --- ОБЕДИНЯВАМЕ ВСИЧКО В ЕДИН ПОТОК ---
+
+            // "when" ще "слуша" за промени в SearchQuery
+            var whenQueryChanged = this.WhenAnyValue(vm => vm.SearchQuery)
                 .Throttle(TimeSpan.FromMilliseconds(500), RxApp.MainThreadScheduler)
-                // "Вземи стойността и я почисти (trim)"
                 .Select(query => query?.Trim())
-                // "Не прави нищо, ако новата стойност е същата като старата"
-                .DistinctUntilChanged()
-                // "Ако стойността не е празна..."
-                .Where(query => !string.IsNullOrWhiteSpace(query))
-                // "...извикай АСИНХРОННО нашия API сервиз."
-                // (SelectMany е за работа с async задачи в "поток")
-                .SelectMany(query => _service.SearchSongsAsync(query))
-                // "Когато резултатите пристигнат, върни се на UI нишката."
-                .ObserveOn(RxApp.MainThreadScheduler)
-                // "...и се 'абонирай' за резултата."
+                .DistinctUntilChanged();
+
+            // --- ПОТОК 1: За ВАЛИДНИ търсения ---
+            whenQueryChanged
+                // 1. ОПРАВЕН WHERE: Търси само ако текстът е > 2 символа
+                .Where(query => !string.IsNullOrWhiteSpace(query) && query.Length > 2)
+                .Do(_ => IsLoadingResults = true) // Показва спинъра (на UI нишка)
+                // 2. ПО-СИГУРЕН ASYNC:
+                //    Изрично казваме "пусни това във фон, дори ако
+                //    SelectMany се обърка"
+                .SelectMany(query => 
+                        Observable.FromAsync(() => _service.SearchSongsAsync(query))
+                            .Catch(Observable.Return(new List<DeezerTrack>())) // Хвани грешки
+                )
+                .ObserveOn(RxApp.MainThreadScheduler) // Върни се на UI нишка
                 .Subscribe(results =>
                 {
-                    // Това е кодът, който се изпълнява,
-                    // когато API-то върне данни.
-                    
-                    SearchResults.Clear(); // Изчисти старите резултати
+                    SearchResults.Clear();
                     foreach (var result in results)
                     {
-                        SearchResults.Add(result); // Добави новите
+                        SearchResults.Add(result);
                     }
+                    IsLoadingResults = false; // Скрий спинъра
+                });
+
+            // --- ПОТОК 2: За НЕВАЛИДНИ/празни търсения ---
+            whenQueryChanged
+                // 3. ОПРАВЕН WHERE: Изпълни само ако текстът е празен или твърде къс
+                .Where(query => string.IsNullOrWhiteSpace(query) || query.Length <= 2)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(_ =>
+                {
+                    SearchResults.Clear(); // Изчисти резултатите
+                    IsLoadingResults = false; // Увери се, че спинърът е скрит
                 });
         }
     }
