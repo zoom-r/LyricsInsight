@@ -7,10 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="E.Deezer" Version="4.2.2" />
-      <PackageReference Include="Google.GenAI" Version="0.4.0" />
+      <PackageReference Include="Google.GenAI" Version="0.5.0" />
       <PackageReference Include="LyricsScraperNET" Version="2.2.2" />
-      <PackageReference Include="System.Net.Http.Json" Version="9.0.10" />
+      <PackageReference Include="System.Net.Http.Json" Version="10.0.0" />
     </ItemGroup>
 
 </Project>

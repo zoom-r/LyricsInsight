@@ -1,5 +1,3 @@
-// Файл: LyricsInsight.Core/Services/GenAiService.cs
-
 using System;
 using System.Threading.Tasks;
 using Google.GenAI; // Новият SDK
@@ -20,7 +18,6 @@ namespace LyricsInsight.Core.Services
             }
 
             // 2. Инициализираме модела.
-            // "gemini-1.5-flash" е най-бързият и е идеален за тази задача.
             _geminiModel = new Client(apiKey:apiKey);
         }
 
@@ -37,7 +34,7 @@ namespace LyricsInsight.Core.Services
             3. Всички забележителни метафори или образи.
             4. Дали има референции към други хора, песни...
             5. Мястото на песента в албума (ако участва в албум - не говорим за това, ако е публикувана само като single)
-            Отговори на български език.
+            Може да говориш и по други допълнителни теми. Отговори на български език.
             
             Име на песента: {song}
             Име на артиста: {artist}
