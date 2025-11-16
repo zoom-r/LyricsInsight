@@ -5,7 +5,6 @@ using LyricsInsight.Core.Services;
 using ReactiveUI; // За ViewModelBase
 using System.Windows.Input;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 
 
 namespace LyricsInsight.ViewModels;
@@ -14,6 +13,7 @@ public class SongDetailsViewModel : ViewModelBase
     // Пропъртита за всичко, което ще показваме в UI-я
     private readonly LyricsService _lyricsService;
     private readonly GenAiService _genAiService;
+    private readonly DeezerService _deezerService;
     
     public ICommand BackCommand { get; }
     
@@ -88,32 +88,61 @@ public class SongDetailsViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _isLoadingAnalysis, value);
     }
     
+    private SongSearchResult _selectedSong;
+
+    public SongSearchResult SelectedSong
+    {
+        get => _selectedSong;
+        set => this.RaiseAndSetIfChanged(ref _selectedSong, value);
+    }
+    
     // Конструктор, който приема избраната песен
-    public SongDetailsViewModel(DeezerTrack selectedSong,  LyricsService lyricsService, GenAiService genAiService, Action onGoBack)
+    public SongDetailsViewModel(SongSearchResult selectedSong,  LyricsService lyricsService, GenAiService genAiService, DeezerService deezerService, Action onGoBack)
     {
         _lyricsService = lyricsService;
         _genAiService = genAiService;
+        _deezerService = deezerService;
         
         BackCommand = ReactiveCommand.Create(onGoBack, outputScheduler: RxApp.MainThreadScheduler);
         // Попълваме данните, които вече имаме от търсенето
+        SelectedSong = selectedSong;
         Title = selectedSong.Title;
         Artist = selectedSong.Artist;
-        AlbumCoverUrl = selectedSong.AlbumCoverLarge; // Ще вземем по-голяма снимка по-късно
-        Album = selectedSong.AlbumTitle;
-        AlbumCoverSmallUrl = selectedSong.AlbumCoverSmall;
-        AlbumCoverMediumUrl = selectedSong.AlbumCoverMedium;
-        AlbumCoverBigUrl = selectedSong.AlbumCoverLarge;
-        ReleaseDate = "Издадена: " + selectedSong.ReleaseDate;
+        AlbumCoverUrl = selectedSong.AlbumCoverUrl; // Ще вземем по-голяма снимка по-късно
+        Album = "Албум: " + selectedSong.Album;
         IsAnalysisReady = false;
         IsLoadingAnalysis = true;
         IsLoadingLyrics = true;
-        // --- ВРЕМЕННО: ФАЛШИВИ ДАННИ ---
-        // Ще заредим истинските данни от Genius/OpenAI в следващите стъпки.
-        // Засега слагаме фалшив текст, за да тестваме UI-я.
-        // Задаваме "Зареждане..." съобщения
-        //LyricsText = "Зареждане на текста...";
-        //AiAnalysisText = "Очаква се текстът, за да започне анализ...";
+        LoadSongDetails(selectedSong.Id);
         LoadLyrics();
+    }
+    
+    
+    private void LoadSongDetails(string trackId)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                var details = await _deezerService.GetTrackDetailsAsync(trackId);
+                if (details != null)
+                {
+                    ReleaseDate = $"Издадена: {details.ReleaseDate.ToString("dd/MM/yyyy")}";
+                    AlbumCoverSmallUrl = details.Album?.CoverSmall;
+                    AlbumCoverMediumUrl = details.Album?.CoverMedium;
+                    AlbumCoverBigUrl = details.Album?.CoverBig;
+                }
+                // Актуализираме основната снимка с по-голямата!
+                if (!string.IsNullOrWhiteSpace(AlbumCoverBigUrl))
+                {
+                    AlbumCoverUrl = AlbumCoverBigUrl;
+                }
+            }
+            catch (Exception ex)
+            {
+                ReleaseDate = $"Грешка при зареждане: {ex.Message}";
+            }
+        });
     }
     
     private void LoadLyrics()

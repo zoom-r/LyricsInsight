@@ -48,7 +48,7 @@ public partial class SongDetailsView : UserControl
         var filePickerOptions = new FilePickerSaveOptions
         {
             Title = "Запазване на Текст",
-            SuggestedFileName = $"{vm.Artist} - {vm.Title}.txt",
+            SuggestedFileName = $"{vm.SelectedSong.Artist} - {vm.SelectedSong.Title}.txt",
             FileTypeChoices = new[] { FilePickerFileTypes.TextPlain }
         };
 
@@ -89,7 +89,7 @@ public partial class SongDetailsView : UserControl
         var filePickerOptions = new FilePickerSaveOptions
         {
             Title = "Запазване на Анализ",
-            SuggestedFileName = $"{vm.Artist} - {vm.Title} (Анализ).pdf", // <-- .pdf
+            SuggestedFileName = $"{vm.SelectedSong.Artist} - {vm.SelectedSong.Title} (Анализ).pdf", // <-- .pdf
             FileTypeChoices = new[] { pdfFileType } // <-- PDF тип
         };
 
@@ -156,7 +156,7 @@ public partial class SongDetailsView : UserControl
         var filePickerOptions = new FilePickerSaveOptions
         {
             Title = $"Запазване на Корица {sizeSuffix}",
-            SuggestedFileName = $"{vm.Artist} - {vm.Album} {sizeSuffix}.jpg",
+            SuggestedFileName = $"{vm.SelectedSong.Artist} - {vm.SelectedSong.Album} {sizeSuffix}.jpg",
             FileTypeChoices = new[] { FilePickerFileTypes.ImageJpg }
         };
 

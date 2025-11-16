@@ -70,20 +70,20 @@ namespace LyricsInsight.ViewModels
             // Абонираме се за навигацията
             _searchVM.OnSongSelected
                 .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe((DeezerTrack song) => NavigateToSongDetails(song)); 
+                .Subscribe((SongSearchResult song) => NavigateToSongDetails(song)); 
 
             // Показваме търсачката
             CurrentView = _searchVM;
         }
         
         // --- ДОБАВИ ТОЗИ НОВ МЕТОД ---
-        private void NavigateToSongDetails(DeezerTrack song)
+        private void NavigateToSongDetails(SongSearchResult song)
         {
             // Тук е магията:
             // 1. Създаваме новия ViewModel
             // 2. Подаваме му избраната песен
             // 3. Задаваме CurrentView, което автоматично сменя UI-я
-            CurrentView = new SongDetailsViewModel(song,  _lyricsService, _genAiService, NavigateToSearch);
+            CurrentView = new SongDetailsViewModel(song,  _lyricsService, _genAiService, _deezerService, NavigateToSearch);
         }
         
         // 8. Нов метод, който просто връща стария изглед
