@@ -1,12 +1,11 @@
-// Файл: LyricsInsight/ViewModels/SongDetailsViewModel.cs
-
 using System;
-using System.Linq;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
 using Google.GenAI;
-using LyricsInsight.Core; // <-- 1. ТРЯБВА НИ ДИСПЕЧЕРЪТ!
+using LyricsInsight.Core;
 using LyricsInsight.Core.Models;
 using LyricsInsight.Core.Services;
 using ReactiveUI;
@@ -23,10 +22,10 @@ namespace LyricsInsight.ViewModels
         // --- 2. СУРОВИ МОДЕЛИ (ЧИСТИ ДАННИ) ---
         // Това са "суровите" данни, които получаваме от сервизите.
         // Те са private, защото UI-ят не трябва да ги интересува.
-        private Track _track;
-        private Album _album;
-        private Artist _artist;
-        private LyricsResult _lyrics;
+        private Track? _track;
+        private Album? _album;
+        private Artist? _artist;
+        private LyricsResult? _lyrics;
         
         // --- 3. ПОЛЕТА ЗА СЪСТОЯНИЕ (КАКВОТО ИМАХМЕ) ---
         private readonly string _songId;
@@ -69,6 +68,7 @@ namespace LyricsInsight.ViewModels
         // Те ЧЕТАТ от суровите модели и ги ФОРМАТИРАТ.
         
         public ICommand BackCommand { get; }
+        public ICommand OpenLinkCommand { get; }
         
         // // Данни от търсенето (вече ги имаме)
         // public string Title { get; }
@@ -83,11 +83,11 @@ namespace LyricsInsight.ViewModels
         // --- Форматирани данни от _track (който се зарежда) ---
         public string FormattedTrackReleaseDate => _track == null ? "Зареждане..." : $"Дата на издаване: {_track.ReleaseDate:dd/MM/yyyy}";
         public string FormattedTrackDuration => _track == null ? "..." : $"Продължителност: {_track.Duration:m\\:ss}";
-        public string FormattedTrackPosition => _track?.TrackPosition == null ? null : $"Позиция в албума: №{_track.TrackPosition}";
-        public string FormattedTrackRank => _track?.Rank == null ? null : $"Ранк: #{_track.Rank}";
-        public string FormattedBpm => _track?.Bpm == null ? null : $"Удара в минута: {_track.Bpm}";
+        public string FormattedTrackPosition => _track?.TrackPosition == null ? null : $"Позиция в албума: {_track.TrackPosition}";
+        public string FormattedTrackRank => _track?.Rank == null ? null : $"Ранк: #{_track.Rank:N0}";
+        public string FormattedBpm => _track?.Bpm == null || _track?.Bpm == 0 ? null : $"Удара в минута: {_track.Bpm}";
         public string FormattedTrackArtists => _track == null ? "..." : _track.Artists;
-        public string FormattedTrackDiskNumber => _track?.DiskNumber == null ? "..." : $"Диск: №{_track.DiskNumber}";
+        public string FormattedTrackDiskNumber => _track?.DiskNumber == null ? "..." : $"Диск: {_track.DiskNumber}";
         
         
         //
@@ -98,9 +98,9 @@ namespace LyricsInsight.ViewModels
         // --- Форматирани данни от _album (който се зарежда) ---
         public string FormattedAlbumGenres => _album == null ? "..." : $"Жанр: {string.Join(", ",  _album.Genres)}";
         public string FormattedAlbumLabel => _album == null ? "..." : $"Издателство: {_album.Label}";
-        public string FormattedAlbumFans => _album?.Fans == null ? "..." : $"Фенове: {_album.Fans:N0}"; // :N0 форматира 10000 -> 10,000
+        public string FormattedAlbumFans => _album?.Fans == null ? "..." : $"Фенове: {_album.Fans:N0}";
         public string FormattedRecordType => _album == null ? "..." : $"Вид на изданието: {_album.RecordType}";
-        public string FormattedAlbumDuration => _album?.Duration == null ? "..." : $"Продължителност:  {_album.Duration:m\\:ss}";
+        public string FormattedAlbumDuration => _album?.Duration == null ? "..." : $"Продължителност: {_album.Duration:hh\\:mm\\:ss}";
         
         
         // --- Данни за кориците (от _album) ---
@@ -117,14 +117,14 @@ namespace LyricsInsight.ViewModels
         public string ArtistNbFan => _artist?.NbFan == null ? "..." : $"Фенове:  {_artist.NbFan:N0}";
         
         // --- Данни за текстовете (от _lyrics) ---
-        private string _lyricsText;
+        private string? _lyricsText;
         public string LyricsText
         {
             get => _lyricsText;
             set => this.RaiseAndSetIfChanged(ref _lyricsText, value);
         }
 
-        private string _aiAnalysisText;
+        private string? _aiAnalysisText;
         public string AiAnalysisText
         {
             get => _aiAnalysisText;
@@ -140,15 +140,12 @@ namespace LyricsInsight.ViewModels
             _deezerService = deezerService;
             
             BackCommand = ReactiveCommand.Create(onGoBack, outputScheduler: RxApp.MainThreadScheduler);
+            OpenLinkCommand = ReactiveCommand.Create<string>(OpenUrl);
             
             // Запазваме данните от търсенето
             _songId = selectedSong.Id;
             _albumId = selectedSong.AlbumId;
             _artistId = selectedSong.ArtistId;
-            // Title = selectedSong.Title;
-            // Artist = selectedSong.Artist; // Предполагаме, че SongSearchResult има 'Artist'
-            // AlbumName = "Албум: ..."; // Ще се ъпдейтне от _album
-            // InitialAlbumCoverUrl = selectedSong.AlbumCoverUrl;
             
             // Включваме спинърите
             IsLoadingDetails = true;
@@ -158,7 +155,6 @@ namespace LyricsInsight.ViewModels
 
             // СТАРТИРАМЕ ВСИЧКО АСИНХРОННО
             LoadDetails();
-            // LoadLyrics();
         }
         
         // --- 6. МЕТОДИ ЗА ЗАРЕЖДАНЕ (С ПРАВИЛЕН THREADING) ---
@@ -308,16 +304,51 @@ namespace LyricsInsight.ViewModels
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
-                        if (ex is ServerError)
-                            AiAnalysisText = "Има проблеми със сървърите на Google GenAI. Моля опитайте по-късно";
-                        else
-                            AiAnalysisText = $"Грешка при генерирането на анализ: {ex.Message}";
-                        
+                        AiAnalysisText = ex is ServerError
+                            ? "Има проблеми със сървърите на Google GenAI. Моля опитайте по-късно"
+                            : $"Грешка при генерирането на анализ: {ex.Message}";
                         IsLoadingAnalysis = false;
                         IsAnalysisReady = false;
                     });
                 }
             });
+        }
+        
+        /// <summary>
+        /// Отваря URL в браузъра по подразбиране,
+        /// като се съобразява с операционната система.
+        /// </summary>
+        private void OpenUrl(string url)
+        {
+            // Провери дали URL-ът е валиден, преди да се опиташ да го отвориш
+            if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
+            {
+                Console.WriteLine($"Опит за отваряне на невалиден URL: {url}");
+                return;
+            }
+
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // За Windows
+                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    // За Linux
+                    Process.Start("xdg-open", url);
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    // За macOS (както си ти)
+                    Process.Start("open", url);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Грешка при отваряне на URL: {ex.Message}");
+            }
         }
     }
 }
