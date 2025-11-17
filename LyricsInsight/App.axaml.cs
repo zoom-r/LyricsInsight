@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
-
+using LyricsInsight.Core.Mapping;
 using System.Linq;
 using Avalonia.Markup.Xaml;
 using LyricsInsight.ViewModels;
@@ -14,6 +14,7 @@ public partial class App : Application
 {
     public override void Initialize()
     {
+        AutoMapperConfig.Initialize();
         AvaloniaXamlLoader.Load(this);
     }
 

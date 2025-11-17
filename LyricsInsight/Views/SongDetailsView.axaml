@@ -5,101 +5,203 @@
              xmlns:vm="using:LyricsInsight.ViewModels"
              xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
              xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
-             xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
-             xmlns:progRing="clr-namespace:AvaloniaProgressRing;assembly=AvaloniaProgressRing"
+             xmlns:progressRing="clr-namespace:AvaloniaProgressRing;assembly=AvaloniaProgressRing"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="LyricsInsight.Views.SongDetailsView"
              x:DataType="vm:SongDetailsViewModel">
     
-    <Grid ColumnDefinitions="300, *" Margin="0, 20, 0, 0">
+    <!-- Основната мрежа си е същата -->
+    <Grid ColumnDefinitions="400, *" Margin="0, 20, 0, 0">
         
-        <StackPanel Grid.Column="0" Margin="15">
-            
-            <Button Command="{Binding BackCommand}"
-                HorizontalAlignment="Left" Margin="0,0,0,10" 
-                Background="Transparent" CornerRadius="20"
-                BorderBrush="Gray" BorderThickness="1">
-                ← Назад
-            </Button>
+        <!-- ============================================= -->
+        <!-- ЛЯВ ПАНЕЛ (ИНФОРМАЦИЯ) - С НОВИЯ КОД -->
+        <!-- ============================================= -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="10" Margin="20">
+
+                <!-- 1. БУТОН ЗА ВРЪЩАНЕ (запазен) -->
+                <Button Command="{Binding BackCommand}"
+                        HorizontalAlignment="Left" Margin="0,0,0,10" 
+                        Background="Transparent" CornerRadius="20"
+                        BorderBrush="Gray" BorderThickness="1">
+                    ← Назад
+                </Button>
+
+                <!-- 2. ОСНОВНА КОРИЦА (запазена) -->
+                <Border CornerRadius="20" ClipToBounds="True"
+                        HorizontalAlignment="Center"
+                        Width="270" Height="270">
+                    <Image asyncImageLoader:ImageLoader.Source="{Binding CoverUrlBig}"
+                           Stretch="UniformToFill"/>
+                </Border>
                 
-            <Border CornerRadius="20" BorderThickness="0" ClipToBounds="True">
-                <Image asyncImageLoader:ImageLoader.Source="{Binding AlbumCoverUrl}" 
-                       Width="270" Height="270"/>
-            </Border>
-            
-            <TextBlock Text="{Binding Title}" 
-                       FontSize="20" FontWeight="Bold" TextWrapping="Wrap" Margin="0,10,0,0"/>
-            <TextBlock Text="{Binding Artist}" 
-                       FontSize="16" Opacity="0.8"/>
-            <TextBlock Name="AlbumName" Text="{Binding Album}" 
-                       FontSize="12" Opacity="0.7"/>
-            <TextBlock Text="{Binding ReleaseDate}" 
-                       FontSize="12" Opacity="0.7"/>
-            
-            <Separator Margin="0,15"/>
-            <Label Margin="5">Изтегляне:</Label>
-            
-            <Button x:Name="SaveLyricsButton"
-                    Content="Запази Текст (.txt)"
-                    HorizontalAlignment="Stretch" Margin="5"
-                    Background="Transparent" CornerRadius="20"
-                    BorderBrush="Gray" BorderThickness="1"/>
-    
-            <Button x:Name="SaveAnalysisButton"
-                    Content="Запази Анализ (.pdf)"
-                    IsEnabled="{Binding IsAnalysisReady}"
-                    HorizontalAlignment="Stretch" Margin="5"
-                    Background="Transparent" CornerRadius="20"
-                    BorderBrush="Gray" BorderThickness="1"/>
-    
-            <Button Content="Запази Корица (.jpg)"
-                    HorizontalAlignment="Stretch"
-                    Margin="5"
-                    Background="Transparent" CornerRadius="20"
-                    BorderBrush="Gray" BorderThickness="1">
-                <Button.Flyout>
-                    <MenuFlyout>
-                        <MenuItem Header="Малка (56x56)" x:Name="SaveCoverSmallItem"/>
-                        <MenuItem Header="Средна (250x250)" x:Name="SaveCoverMediumItem"/>
-                        <MenuItem Header="Голяма (500x500)" x:Name="SaveCoverBigItem"/>
-                    </MenuFlyout>
-                </Button.Flyout>
-            </Button>
-        </StackPanel>
-        
-        <TabControl Grid.Column="1" Margin="0,10,10,10">
+                <!-- 3. ОСНОВНО ЗАГЛАВИЕ (запазено) -->
+                <StackPanel Spacing="2" HorizontalAlignment="Center" Margin="0,10,0,0">
+                    <TextBlock Text="{Binding TrackTitle}"
+                               FontSize="24" FontWeight="Bold"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding ArtistName}"
+                               FontSize="18" Opacity="0.8"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding AlbumTitle}"
+                               FontSize="14" Opacity="0.6"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+                
+                <!-- 4. СПИНЪР ЗА ДЕТАЙЛИТЕ (запазен) -->
+                <progressRing:ProgressRing IsVisible="{Binding IsLoadingDetails}"
+                              
+                              Width="50" Height="50"
+                              HorizontalAlignment="Center" Margin="0,20"/>
+                
+                <!-- 
+                  ===================================================
+                  ТУК Е ПРОМЯНАТА:
+                  Заменяме стария StackPanel с 3 Expander-а
+                  ===================================================
+                -->
+                <StackPanel IsVisible="{Binding !IsLoadingDetails}"
+                            Spacing="5" Margin="0,15,0,0">
+                    
+                    <!-- Expander 1: Песен -->
+                    <Expander Header="Детайли за песента" HorizontalAlignment="Stretch" Background="Transparent">
+                        <StackPanel Spacing="2">
+                            <!-- <TextBlock Text="{Binding TrackTitle}" /> -->
+                            <TextBlock Text="{Binding FormattedTrackArtists}" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding FormattedTrackReleaseDate}"/>
+                            <TextBlock Text="{Binding FormattedTrackDuration}"/>
+                            <TextBlock Text="{Binding FormattedTrackRank}"/>
+                            <TextBlock Text="{Binding FormattedTrackPosition}"/>
+                            <TextBlock Text="{Binding FormattedTrackDiskNumber}"/>
+                            <TextBlock Text="{Binding FormattedBpm}"/>
+                        </StackPanel>
+                    </Expander>
+                    
+                    <!-- Expander 2: Албум -->
+                    <Expander Header="Детайли за албума" HorizontalAlignment="Stretch" Background="Transparent">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding FormattedAlbumGenres}" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding FormattedRecordType}"/>
+                            <TextBlock Text="{Binding FormattedAlbumDuration}"/>
+                            <TextBlock Text="{Binding FormattedAlbumLabel}" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding FormattedAlbumFans}"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Expander 3: Артист -->
+                    <Expander Header="Детайли за изпълнителя" HorizontalAlignment="Stretch" Background="Transparent">
+                        <StackPanel Spacing="2">
+                            <Border CornerRadius="10" ClipToBounds="True" 
+                                    Width="100" Height="100" Margin="0,10"
+                                    HorizontalAlignment="Left">
+                                <Image asyncImageLoader:ImageLoader.Source="{Binding ArtistPicture}" 
+                                       Stretch="UniformToFill"/>
+                            </Border>
+                            <TextBlock Text="{Binding ArtistName}"/>
+                            <TextBlock Text="{Binding ArtistNbAlbum}"/>
+                            <TextBlock Text="{Binding ArtistNbFan}"/>
+                        </StackPanel>
+                    </Expander>
+                    
+                </StackPanel>
+                
+                <Separator Margin="0,15"/>
+                <Label Margin="0,5,0,0">Изтегляне:</Label>
+                
+                <!-- 6. БУТОНИ ЗА ИЗТЕГЛЯНЕ (запазени) -->
+                <Grid ColumnDefinitions="*,*,*">
+                    <!-- Бутон за корица (с Flyout) -->
+                    <Button Grid.Column="0" Content="Корица (.jpg)" HorizontalAlignment="Stretch">
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuItem Header="Малка" x:Name="SaveCoverSmall"/>
+                                <MenuItem Header="Средна" x:Name="SaveCoverMedium"/>
+                                <MenuItem Header="Голяма" x:Name="SaveCoverBig"/>
+                                <MenuItem Header="XL" x:Name="SaveCoverXl"/>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    
+                    <Button Grid.Column="1" Content="Текст (.txt)"
+                            x:Name="SaveLyricsButton"
+                            IsEnabled="{Binding !IsLoadingLyrics}"
+                            HorizontalAlignment="Stretch"/>
+                    
+                    <Button Grid.Column="2" Content="Анализ (.pdf)"
+                            x:Name="SaveAnalysisButton"
+                            IsEnabled="{Binding IsAnalysisReady}"
+                            HorizontalAlignment="Stretch"/>
+                </Grid>
+                
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ============================================= -->
+        <!-- ДЕСЕН ПАНЕЛ (ТАБОВЕ) - Непроменен -->
+        <!-- ============================================= -->
+        <TabControl Grid.Column="1">
+            <!-- 1. ТАБ ЗА ТЕКСТА -->
             <TabItem Header="Текст">
                 <Grid>
-                    <progRing:ProgressRing IsActive="{Binding IsLoadingLyrics}"
-                                  Width="80" Height="80"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  Foreground="Gray"/>
-                    <TextBox Text="{Binding LyricsText}"
+                    <progressRing:ProgressRing IsActive="{Binding IsLoadingLyrics}"
+                                 
+                                 Width="100" Height="100"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"/>
+                    
+                    <TextBox IsVisible="{Binding !IsLoadingLyrics}" 
+                             Text="{Binding LyricsText}"
                              IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5"
-                             BorderThickness="0" TextAlignment="Center" FontSize="20"
-                             Focusable="False"/>
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="10"
+                             BorderThickness="0" FontSize="20" TextAlignment="Center"/>
                 </Grid>
             </TabItem>
             
+            <!-- 2. ТАБ ЗА АНАЛИЗА -->
             <TabItem Header="AI Анализ">
                 <Grid>
-                    <progRing:ProgressRing IsActive="{Binding IsLoadingAnalysis}"
-                                                       Width="80" Height="80"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="Gray"/>
-                    <md:MarkdownScrollViewer Markdown="{Binding AiAnalysisText}"
-                                             Margin="5" Focusable="False">
-                        <md:MarkdownScrollViewer.Styles>
-                            <Style Selector="ctxt|CTextBlock">
-                                <Setter Property="FontSize" Value="20"></Setter>
-                            </Style>
-                        </md:MarkdownScrollViewer.Styles>
-                    </md:MarkdownScrollViewer>
+                    <progressRing:ProgressRing IsActive="{Binding IsLoadingAnalysis}"
+                                 
+                                 Width="100" Height="100"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"/>
+                    
+                    <md:MarkdownScrollViewer IsVisible="{Binding !IsLoadingAnalysis}"
+                                             Markdown="{Binding AiAnalysisText}"
+                                             TextElement.FontSize="20"
+                                             Margin="10" />
                 </Grid>
             </TabItem>
+            
+            <!-- 3. ТАБ ЗА АЛБУМА -->
+            <!-- <TabItem Header="Албум"> -->
+            <!--     <Grid> -->
+            <!--         <ProgressRing:ProgressRing IsVisible="{Binding IsLoadingDetails}" -->
+            <!--                      IsIndeterminate="True" -->
+            <!--                      Width="100" Height="100" -->
+            <!--                      HorizontalAlignment="Center" -->
+            <!--                      VerticalAlignment="Center"/> -->
+            <!--          -->
+            <!--         <ListBox IsVisible="{Binding !IsLoadingDetails}" -->
+            <!--                  ItemsSource="{Binding AlbumTracks}" -->
+            <!--                  Background="Transparent" -->
+            <!--                  Margin="5"> -->
+            <!--             <ListBox.ItemTemplate> -->
+            <!--                 <DataTemplate DataType="m:Track"> -->
+            <!--                     <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,5"> -->
+            <!--                         <TextBlock Text="{Binding TrackPosition, StringFormat='{0}.'}" Opacity="0.7"/> -->
+            <!--                         <TextBlock Text="{Binding Title}" FontWeight="Bold"/> -->
+            <!--                         <TextBlock Text="{Binding Artists}" Opacity="0.7"/> -->
+            <!--                     </StackPanel> -->
+            <!--                 </DataTemplate> -->
+            <!--             </ListBox.ItemTemplate> -->
+            <!--         </ListBox> -->
+            <!--     </Grid> -->
+            <!-- </TabItem> -->
+            
         </TabControl>
     </Grid>
 </UserControl>

@@ -7,8 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AutoMapper" Version="15.1.0" />
       <PackageReference Include="Google.GenAI" Version="0.5.0" />
       <PackageReference Include="LyricsScraperNET" Version="2.2.2" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
       <PackageReference Include="System.Net.Http.Json" Version="10.0.0" />
     </ItemGroup>
 

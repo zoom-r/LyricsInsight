@@ -1,20 +1,20 @@
-namespace LyricsInsight.Core.Models
+namespace LyricsInsight.Core.Models;
+
+public class SongSearchResult
 {
-    public class SongSearchResult
-    {
-        // Уникалното ID
-        public string Id { get; set; }
+    // Уникалното ID
+    public required string Id { get; set; }
 
-        // Име на песента
-        public string Title { get; set; }
+    // Име на песента
+    public required string Title { get; set; }
 
-        // Име на изпълнителя
-        public string Artist { get; set; }
-
-        // Име на албума (ако го има)
-        public string Album { get; set; }
-        
-        // URL към корицата на албума
-        public string AlbumCoverUrl { get; set; }
-    }
+    // Име на изпълнителя
+    public required string Artist { get; set; }
+    
+    // URL към корицата на албума
+    public required string AlbumCoverUrl { get; set; }
+    
+    public required string ArtistId  { get; set; }
+    
+    public required string AlbumId { get; set; }
 }

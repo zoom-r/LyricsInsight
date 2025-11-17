@@ -1,211 +1,323 @@
+// Файл: LyricsInsight/ViewModels/SongDetailsViewModel.cs
+
 using System;
-using LyricsInsight.Core;
-using LyricsInsight.Core.Models; // Трябва ни SongSearchResult
-using LyricsInsight.Core.Services;
-using ReactiveUI; // За ViewModelBase
-using System.Windows.Input;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
+using Avalonia.Threading;
+using Google.GenAI;
+using LyricsInsight.Core; // <-- 1. ТРЯБВА НИ ДИСПЕЧЕРЪТ!
+using LyricsInsight.Core.Models;
+using LyricsInsight.Core.Services;
+using ReactiveUI;
 
-
-namespace LyricsInsight.ViewModels;
-public class SongDetailsViewModel : ViewModelBase
+namespace LyricsInsight.ViewModels
 {
-    // Пропъртита за всичко, което ще показваме в UI-я
-    private readonly LyricsService _lyricsService;
-    private readonly GenAiService _genAiService;
-    private readonly DeezerService _deezerService;
-    
-    public ICommand BackCommand { get; }
-    
-    private string _title;
-    public string Title
+    public class SongDetailsViewModel : ViewModelBase
     {
-        get => _title;
-        set => this.RaiseAndSetIfChanged(ref _title, value);
-    }
-
-    private string _artist;
-    public string Artist
-    {
-        get => _artist;
-        set => this.RaiseAndSetIfChanged(ref _artist, value);
-    }
-
-    private string _albumCoverUrl;
-    public string AlbumCoverUrl
-    {
-        get => _albumCoverUrl;
-        set => this.RaiseAndSetIfChanged(ref _albumCoverUrl, value);
-    }
-    
-    // ...
-    public string AlbumCoverSmallUrl { get; private set; }
-    public string AlbumCoverMediumUrl { get; private set; }
-    public string AlbumCoverBigUrl { get; private set; }
-    
-    private string _lyricsText;
-    public string LyricsText
-    {
-        get => _lyricsText;
-        set => this.RaiseAndSetIfChanged(ref _lyricsText, value);
-    }
-
-    private string _aiAnalysisText;
-    public string AiAnalysisText
-    {
-        get => _aiAnalysisText;
-        set => this.RaiseAndSetIfChanged(ref _aiAnalysisText, value);
-    }
-    
-    private string _releaseDate;
-    public string ReleaseDate { get => _releaseDate; set => this.RaiseAndSetIfChanged(ref _releaseDate, value); }
-    
-    private string _album;
-    public string Album
-    {
-        get => _album;
-        set => this.RaiseAndSetIfChanged(ref _album, value);
-    }
-
-    private bool _isAnalysisReady;
-    public bool IsAnalysisReady
-    {
-        get => _isAnalysisReady;
-        set => this.RaiseAndSetIfChanged(ref _isAnalysisReady, value);
-    }
-    
-    private bool _isLoadingLyrics;
-    public bool IsLoadingLyrics
-    {
-        get => _isLoadingLyrics;
-        set => this.RaiseAndSetIfChanged(ref _isLoadingLyrics, value);
-    }
-
-    private bool _isLoadingAnalysis;
-    public bool IsLoadingAnalysis
-    {
-        get => _isLoadingAnalysis;
-        set => this.RaiseAndSetIfChanged(ref _isLoadingAnalysis, value);
-    }
-    
-    private SongSearchResult _selectedSong;
-
-    public SongSearchResult SelectedSong
-    {
-        get => _selectedSong;
-        set => this.RaiseAndSetIfChanged(ref _selectedSong, value);
-    }
-    
-    // Конструктор, който приема избраната песен
-    public SongDetailsViewModel(SongSearchResult selectedSong,  LyricsService lyricsService, GenAiService genAiService, DeezerService deezerService, Action onGoBack)
-    {
-        _lyricsService = lyricsService;
-        _genAiService = genAiService;
-        _deezerService = deezerService;
+        // --- 1. СЕРВИЗИ ---
+        private readonly LyricsService _lyricsService;
+        private readonly GenAiService _genAiService;
+        private readonly DeezerService _deezerService;
         
-        BackCommand = ReactiveCommand.Create(onGoBack, outputScheduler: RxApp.MainThreadScheduler);
-        // Попълваме данните, които вече имаме от търсенето
-        SelectedSong = selectedSong;
-        Title = selectedSong.Title;
-        Artist = selectedSong.Artist;
-        AlbumCoverUrl = selectedSong.AlbumCoverUrl; // Ще вземем по-голяма снимка по-късно
-        Album = "Албум: " + selectedSong.Album;
-        IsAnalysisReady = false;
-        IsLoadingAnalysis = true;
-        IsLoadingLyrics = true;
-        LoadSongDetails(selectedSong.Id);
-        LoadLyrics();
-    }
-    
-    
-    private void LoadSongDetails(string trackId)
-    {
-        Task.Run(async () =>
-        {
-            try
-            {
-                var details = await _deezerService.GetTrackDetailsAsync(trackId);
-                if (details != null)
-                {
-                    ReleaseDate = $"Издадена: {details.ReleaseDate.ToString("dd/MM/yyyy")}";
-                    AlbumCoverSmallUrl = details.Album?.CoverSmall;
-                    AlbumCoverMediumUrl = details.Album?.CoverMedium;
-                    AlbumCoverBigUrl = details.Album?.CoverBig;
-                }
-                // Актуализираме основната снимка с по-голямата!
-                if (!string.IsNullOrWhiteSpace(AlbumCoverBigUrl))
-                {
-                    AlbumCoverUrl = AlbumCoverBigUrl;
-                }
-            }
-            catch (Exception ex)
-            {
-                ReleaseDate = $"Грешка при зареждане: {ex.Message}";
-            }
-        });
-    }
-    
-    private void LoadLyrics()
-    {
-        Task.Run(async () =>
-        {
-            try
-            {
-                // Това се случва на фонова нишка (OK)
-                var lyricsResult = await _lyricsService.GetLyricsAsync(Artist, Title);
-                IsLoadingLyrics = false;
-                // Това е UI ъпдейт -> трябва да е в Dispatcher!
-            
-                if (lyricsResult == null || string.IsNullOrWhiteSpace(lyricsResult.Text))
-                {
-                    LyricsText = "За съжаление текстът на песента не беше намерен.";
-                    AiAnalysisText = "Няма текст, върху който да се извърши анализ.";
-                    IsLoadingAnalysis = false;
-                }
-                else
-                {
-                    string footer = $"\n\n\n(Източник: {lyricsResult.Source})";
-                    LyricsText = lyricsResult.Text + footer;
-                    // Безопасно е да извикаш LoadAnalysis оттук,
-                    // защото сме на UI нишката.
-                    LoadAnalysis(lyricsResult.Text); 
-                }
-            
-            }
-            catch (Exception ex)
-            {
-                LyricsText = $"Възникна грешка при зареждането на текста: {ex.Message}";
-                AiAnalysisText = "Анализът не може да продължи.";
-                IsLoadingAnalysis = false;
-                IsLoadingLyrics = false;
-            }
-        });
-    }
-    
-    private void LoadAnalysis(string lyricsToAnalyze)
-    {
-        Task.Run(async () =>
-        {
-            try
-            {
-                // Този ъпдейт е OK, защото е ПРЕДИ 'await'-а
-                //AiAnalysisText = "Генериране на AI анализ... (това може да отнеме няколко секунди)";
+        // --- 2. СУРОВИ МОДЕЛИ (ЧИСТИ ДАННИ) ---
+        // Това са "суровите" данни, които получаваме от сервизите.
+        // Те са private, защото UI-ят не трябва да ги интересува.
+        private Track _track;
+        private Album _album;
+        private Artist _artist;
+        private LyricsResult _lyrics;
         
-                // Това се случва на фонова нишка (OK)
-                var (analysis, success) = await _genAiService.GenerateAnalysisAsync(lyricsToAnalyze, Title, Artist, Album);
-                IsLoadingAnalysis = false;
-                // Това е UI ъпдейт СЛЕД 'await' -> трябва да е в Dispatcher!
-                AiAnalysisText = analysis;
-                if(success) IsAnalysisReady = true;
-            
-            }
-            catch (Exception ex)
-            {
+        // --- 3. ПОЛЕТА ЗА СЪСТОЯНИЕ (КАКВОТО ИМАХМЕ) ---
+        private readonly string _songId;
+        private readonly string _albumId;
+        private readonly string _artistId;
+        
+        private bool _isLoadingDetails; // За Track и Album
+        public bool IsLoadingDetails
+        {
+            get => _isLoadingDetails;
+            set => this.RaiseAndSetIfChanged(ref _isLoadingDetails, value);
+        }
+        
+        // ... (IsLoadingLyrics, IsLoadingAnalysis, IsAnalysisReady са същите) ...
+        #region Loading Properties
+        private bool _isLoadingLyrics;
+        public bool IsLoadingLyrics
+        {
+            get => _isLoadingLyrics;
+            set => this.RaiseAndSetIfChanged(ref _isLoadingLyrics, value);
+        }
 
-                AiAnalysisText = $"Грешка при генерирането на анализ: {ex.Message}";
-                IsAnalysisReady = false;
-                IsLoadingAnalysis = false;
-            }
-        });
+        private bool _isLoadingAnalysis;
+        public bool IsLoadingAnalysis
+        {
+            get => _isLoadingAnalysis;
+            set => this.RaiseAndSetIfChanged(ref _isLoadingAnalysis, value);
+        }
+        
+        private bool _isAnalysisReady;
+        public bool IsAnalysisReady
+        {
+            get => _isAnalysisReady;
+            set => this.RaiseAndSetIfChanged(ref _isAnalysisReady, value);
+        }
+        #endregion
+
+        // --- 4. ПУБЛИЧНИ СВОЙСТВА (ЗА UI) ---
+        // Това са свойствата, за които XAML-ът се "връзва".
+        // Те ЧЕТАТ от суровите модели и ги ФОРМАТИРАТ.
+        
+        public ICommand BackCommand { get; }
+        
+        // // Данни от търсенето (вече ги имаме)
+        // public string Title { get; }
+        // public string Artist { get; }
+        // // public string InitialAlbumCoverUrl { get; } // Корицата от търсенето
+        // public string AlbumName { get; }
+        
+        //
+        public string TrackLink => _track == null ? "..." : _track.Link;
+        public string TrackTitle => _track == null ? "..." : _track.Title;
+
+        // --- Форматирани данни от _track (който се зарежда) ---
+        public string FormattedTrackReleaseDate => _track == null ? "Зареждане..." : $"Дата на издаване: {_track.ReleaseDate:dd/MM/yyyy}";
+        public string FormattedTrackDuration => _track == null ? "..." : $"Продължителност: {_track.Duration:m\\:ss}";
+        public string FormattedTrackPosition => _track?.TrackPosition == null ? null : $"Позиция в албума: №{_track.TrackPosition}";
+        public string FormattedTrackRank => _track?.Rank == null ? null : $"Ранк: #{_track.Rank}";
+        public string FormattedBpm => _track?.Bpm == null ? null : $"Удара в минута: {_track.Bpm}";
+        public string FormattedTrackArtists => _track == null ? "..." : _track.Artists;
+        public string FormattedTrackDiskNumber => _track?.DiskNumber == null ? "..." : $"Диск: №{_track.DiskNumber}";
+        
+        
+        //
+        public string AlbumTitle => _album == null ? "..." : _album.Title;
+        public string AlbumLink => _album ==null ? "..." : _album.Link;
+        
+        
+        // --- Форматирани данни от _album (който се зарежда) ---
+        public string FormattedAlbumGenres => _album == null ? "..." : $"Жанр: {string.Join(", ",  _album.Genres)}";
+        public string FormattedAlbumLabel => _album == null ? "..." : $"Издателство: {_album.Label}";
+        public string FormattedAlbumFans => _album?.Fans == null ? "..." : $"Фенове: {_album.Fans:N0}"; // :N0 форматира 10000 -> 10,000
+        public string FormattedRecordType => _album == null ? "..." : $"Вид на изданието: {_album.RecordType}";
+        public string FormattedAlbumDuration => _album?.Duration == null ? "..." : $"Продължителност:  {_album.Duration:m\\:ss}";
+        
+        
+        // --- Данни за кориците (от _album) ---
+        public string CoverUrlSmall => _album?.CoverSmall;
+        public string CoverUrlMedium => _album?.CoverMedium;
+        public string CoverUrlBig => _album?.CoverBig; // Ако няма голяма, върни тази от търсенето
+        public string CoverUrlXl => _album?.CoverXl;
+        
+        //
+        public string ArtistName => _artist == null ? "..." : _artist.Name;
+        public string ArtistLink => _artist ==  null ? "..." : _artist.Link;
+        public string ArtistPicture => _artist == null ? "..." : _artist.Picture;
+        public string ArtistNbAlbum => _artist?.NbAlbum == null ? "..." : $"Брой албуми: {_artist.NbAlbum}";
+        public string ArtistNbFan => _artist?.NbFan == null ? "..." : $"Фенове:  {_artist.NbFan:N0}";
+        
+        // --- Данни за текстовете (от _lyrics) ---
+        private string _lyricsText;
+        public string LyricsText
+        {
+            get => _lyricsText;
+            set => this.RaiseAndSetIfChanged(ref _lyricsText, value);
+        }
+
+        private string _aiAnalysisText;
+        public string AiAnalysisText
+        {
+            get => _aiAnalysisText;
+            set => this.RaiseAndSetIfChanged(ref _aiAnalysisText, value);
+        }
+        
+        // --- 5. КОНСТРУКТОР ---
+        public SongDetailsViewModel(SongSearchResult selectedSong, LyricsService lyricsService, GenAiService genAiService, DeezerService deezerService, Action onGoBack)
+        {
+            // Запазваме сервизите
+            _lyricsService = lyricsService;
+            _genAiService = genAiService;
+            _deezerService = deezerService;
+            
+            BackCommand = ReactiveCommand.Create(onGoBack, outputScheduler: RxApp.MainThreadScheduler);
+            
+            // Запазваме данните от търсенето
+            _songId = selectedSong.Id;
+            _albumId = selectedSong.AlbumId;
+            _artistId = selectedSong.ArtistId;
+            // Title = selectedSong.Title;
+            // Artist = selectedSong.Artist; // Предполагаме, че SongSearchResult има 'Artist'
+            // AlbumName = "Албум: ..."; // Ще се ъпдейтне от _album
+            // InitialAlbumCoverUrl = selectedSong.AlbumCoverUrl;
+            
+            // Включваме спинърите
+            IsLoadingDetails = true;
+            IsLoadingLyrics = true;
+            IsLoadingAnalysis = true;
+            IsAnalysisReady = false;
+
+            // СТАРТИРАМЕ ВСИЧКО АСИНХРОННО
+            LoadDetails();
+            // LoadLyrics();
+        }
+        
+        // --- 6. МЕТОДИ ЗА ЗАРЕЖДАНЕ (С ПРАВИЛЕН THREADING) ---
+        
+        private void LoadDetails()
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Изпълняваме двете заявки ПАРАЛЕЛНО
+                    var trackTask = _deezerService.GetTrackDetailsAsync(_songId);
+                    var albumTask = _deezerService.GetAlbumDetailsAsync(_albumId);
+                    var artistTask = _deezerService.GetArtistDetailsAsync(_artistId);
+
+                    // Чакаме да приключат
+                    await Task.WhenAll(trackTask, albumTask,  artistTask);
+
+                    // Вземаме "суровите" МОДЕЛИ
+                    var trackResult = await trackTask;
+                    var albumResult = await albumTask;
+                    var artistResult = await artistTask;
+
+                    // --- ТУК Е КЛЮЧЪТ: ВРЪЩАМЕ СЕ НА UI НИШКАТА ---
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        // 1. Запазваме суровите модели
+                        _track = trackResult;
+                        _album = albumResult;
+                        _artist = artistResult;
+                        
+                        // 2. Спираме спинъра
+                        IsLoadingDetails = false;
+                        
+                        // 3. УВЕДОМЯВАМЕ UI-a, че форматираните свойства са се променили
+                        // UI-ят сега ще извика "get"-ърите на всички тези свойства
+                        this.RaisePropertyChanged(nameof(FormattedTrackReleaseDate));
+                        this.RaisePropertyChanged(nameof(FormattedTrackDuration));
+                        this.RaisePropertyChanged(nameof(FormattedTrackPosition));
+                        this.RaisePropertyChanged(nameof(FormattedTrackRank));
+                        this.RaisePropertyChanged(nameof(FormattedBpm));
+                        this.RaisePropertyChanged(nameof(FormattedTrackArtists));
+                        this.RaisePropertyChanged(nameof(FormattedTrackDiskNumber));
+                        this.RaisePropertyChanged(nameof(TrackLink));
+                        this.RaisePropertyChanged(nameof(TrackTitle));
+                        
+                        this.RaisePropertyChanged(nameof(FormattedAlbumGenres));
+                        this.RaisePropertyChanged(nameof(FormattedAlbumLabel));
+                        this.RaisePropertyChanged(nameof(FormattedAlbumFans));
+                        this.RaisePropertyChanged(nameof(FormattedRecordType));
+                        this.RaisePropertyChanged(nameof(FormattedAlbumDuration));
+                        this.RaisePropertyChanged(nameof(AlbumTitle));
+                        this.RaisePropertyChanged(nameof(AlbumLink));
+                        
+                        this.RaisePropertyChanged(nameof(CoverUrlSmall));
+                        this.RaisePropertyChanged(nameof(CoverUrlMedium));
+                        this.RaisePropertyChanged(nameof(CoverUrlBig));
+                        this.RaisePropertyChanged(nameof(CoverUrlXl));
+                        
+                        this.RaisePropertyChanged(nameof(ArtistName));
+                        this.RaisePropertyChanged(nameof(ArtistLink));
+                        this.RaisePropertyChanged(nameof(ArtistPicture));
+                        this.RaisePropertyChanged(nameof(ArtistNbAlbum));
+                        this.RaisePropertyChanged(nameof(ArtistNbFan));
+                        
+                        LoadLyrics();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        IsLoadingDetails = false;
+                        // Можем да покажем грешката някъде
+                        // FormattedReleaseDate = $"Грешка: {ex.Message}";
+                    });
+                }
+            });
+        }
+        
+        private void LoadLyrics()
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Това е на фонова нишка (OK)
+                    var lyricsResult = await _lyricsService.GetLyricsAsync(ArtistName, TrackTitle);
+
+                    // ВРЪЩАМЕ СЕ НА UI НИШКАТА
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        IsLoadingLyrics = false;
+                        _lyrics = lyricsResult; // Запазваме суровия резултат
+                        
+                        if (_lyrics == null || string.IsNullOrWhiteSpace(_lyrics.Text))
+                        {
+                            LyricsText = "За съжаление текстът на песента не беше намерен.";
+                            AiAnalysisText = "Няма текст, върху който да се извърши анализ.";
+                            IsLoadingAnalysis = false;
+                            IsAnalysisReady = false;
+                        }
+                        else
+                        {
+                            string footer = $"\n\n\n(Източник: {_lyrics.Source})";
+                            LyricsText = _lyrics.Text + footer;
+                            
+                            // Извикваме анализа
+                            LoadAnalysis(_lyrics.Text);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        IsLoadingLyrics = false;
+                        IsLoadingAnalysis = false;
+                        LyricsText = $"Възникна грешка при зареждането на текста: {ex.Message}";
+                        AiAnalysisText = "Анализът не може да продължи.";
+                    });
+                }
+            });
+        }
+    
+        private void LoadAnalysis(string lyricsToAnalyze)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Това е на фонова нишка (OK)
+                    // (Предполагам, че новият ти 'Track' модел има 'Album' свойство)
+                    string albumName = _album?.Title ?? "Неизвестен албум";
+                    
+                    var (analysis, success) = await _genAiService.GenerateAnalysisAsync(lyricsToAnalyze, TrackTitle, ArtistName, albumName);
+
+                    // ВРЪЩАМЕ СЕ НА UI НИШКАТА
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        IsLoadingAnalysis = false;
+                        AiAnalysisText = analysis; // Твоят GenAiService вече връща само string
+                        IsAnalysisReady = success; // (Предполагам, че ако не гръмне, е 'true')
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (ex is ServerError)
+                            AiAnalysisText = "Има проблеми със сървърите на Google GenAI. Моля опитайте по-късно";
+                        else
+                            AiAnalysisText = $"Грешка при генерирането на анализ: {ex.Message}";
+                        
+                        IsLoadingAnalysis = false;
+                        IsAnalysisReady = false;
+                    });
+                }
+            });
+        }
     }
 }
