@@ -27,9 +27,9 @@
                  Padding="10"
                  Margin="0,10,0,0"/>
 
-        <Button Content="Запази и Продължи"
+        <Button Content="Запази"
                 Command="{Binding SaveCommand}"
-                HorizontalAlignment="Stretch"
+                HorizontalAlignment="Center"
                 CornerRadius="20"/>
         
     </StackPanel>

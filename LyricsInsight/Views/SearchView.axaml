@@ -5,7 +5,7 @@
              xmlns:vm="using:LyricsInsight.ViewModels"
              xmlns:m="using:LyricsInsight.Core.Models"
              xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
-             xmlns:avaloniaProgressRing="clr-namespace:AvaloniaProgressRing;assembly=AvaloniaProgressRing"
+             xmlns:progressRing="clr-namespace:AvaloniaProgressRing;assembly=AvaloniaProgressRing"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="LyricsInsight.Views.SearchView"
              x:DataType="vm:SearchViewModel">
@@ -49,7 +49,7 @@
         </TextBox>
         
         <Grid Grid.Row="2" Margin="10,0,10,10">
-            <avaloniaProgressRing:ProgressRing IsActive="{Binding IsLoadingResults}"
+            <progressRing:ProgressRing IsActive="{Binding IsLoadingResults}"
                                                Width="80" Height="80"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"

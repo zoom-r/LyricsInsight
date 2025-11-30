@@ -1,8 +1,6 @@
 using System;
-using System.Reactive; // За Unit
-using System.Reactive.Linq; // За IObservable
 using System.Windows.Input;
-using LyricsInsight.Core.Services; // Нашият SettingsService
+using LyricsInsight.Core.Services;
 using ReactiveUI;
 
 namespace LyricsInsight.ViewModels;
@@ -10,7 +8,7 @@ namespace LyricsInsight.ViewModels;
 public class ApiKeyViewModel : ViewModelBase
 {
     private readonly SettingsService _settingsService;
-    private readonly Action<string> _onKeySaved; // "Callback"
+    private readonly Action<string> _onKeySaved;
 
     private string _apiKey;
     public string ApiKey
@@ -24,28 +22,20 @@ public class ApiKeyViewModel : ViewModelBase
     public ApiKeyViewModel(SettingsService settingsService, Action<string> onKeySaved)
     {
         _settingsService = settingsService;
-        _onKeySaved = onKeySaved; // Запазваме "callback"-а
-
-        // Определяме кога бутонът "Запази" е активен
-        // (само когато текстът в ApiKey не е празен)
+        _onKeySaved = onKeySaved;
+        
         var canSave = this.WhenAnyValue(
             vm => vm.ApiKey,
             (key) => !string.IsNullOrWhiteSpace(key)
         );
-
-        // Създаваме командата
-        // ReactiveCommand.CreateFromTask е за async команди
+        
         SaveCommand = ReactiveCommand.CreateFromTask(
             async () =>
             {
-                // 1. Запазваме ключа във файла
                 await _settingsService.SaveKeyAsync(ApiKey);
-                
-                // 2. Извикваме "callback"-а, за да кажем на MainViewModel,
-                // че сме готови и му подаваме новия ключ
                 _onKeySaved(ApiKey);
             },
-            canSave // Активираме бутона само ако canSave е 'true'
+            canSave
         );
     }
 }

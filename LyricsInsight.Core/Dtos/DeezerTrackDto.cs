@@ -29,7 +29,7 @@ public class DeezerTrackDto
     public float? Bpm { get; set; }
     
     [JsonPropertyName("contributors")]
-    public required TrackContributor[]  Contributors { get; set; }
+    public required TrackContributor[] Contributors { get; set; }
 }
 
 public class TrackContributor

@@ -31,8 +31,7 @@
                 </Border>
                 
                 <StackPanel Spacing="2" HorizontalAlignment="Center" Margin="0,10,0,0">
-                    <Button Classes="HyperlinkButton"
-                            Content="{Binding TrackTitle}"
+                    <Button Content="{Binding TrackTitle}"
                             Command="{Binding OpenLinkCommand}"
                             CommandParameter="{Binding TrackLink}"
                             FontSize="24" FontWeight="Bold"
@@ -40,8 +39,7 @@
                             Background="Transparent"
                             BorderThickness="0"/>
                     
-                    <Button Classes="HyperlinkButton"
-                            Content="{Binding FormattedTrackArtists}"
+                    <Button Content="{Binding FormattedTrackArtists}"
                             Command="{Binding OpenLinkCommand}"
                             CommandParameter="{Binding ArtistLink}"
                             FontSize="18" Opacity="0.8"
@@ -49,8 +47,7 @@
                             Background="Transparent"
                             BorderThickness="0"/>
             
-                    <Button Classes="HyperlinkButton"
-                            Content="{Binding AlbumTitle}"
+                    <Button Content="{Binding AlbumTitle}"
                             Command="{Binding OpenLinkCommand}"
                             CommandParameter="{Binding AlbumLink}"
                             FontSize="14" Opacity="0.6"
@@ -59,7 +56,6 @@
                             BorderThickness="0"/>
                 </StackPanel>
                 
-                <!-- 4. СПИНЪР ЗА ДЕТАЙЛИТЕ (запазен) -->
                 <progressRing:ProgressRing IsVisible="{Binding IsLoadingDetails}"
                               
                               Width="50" Height="50"
@@ -68,7 +64,6 @@
                 <StackPanel IsVisible="{Binding !IsLoadingDetails}"
                             Spacing="5" Margin="0,15,0,0">
                     
-                    <!-- Expander 1: Песен -->
                     <Expander Header="Детайли за песента" HorizontalAlignment="Stretch" Background="Transparent">
                         <StackPanel Spacing="2">
                             <TextBlock Text="{Binding FormattedTrackReleaseDate}"/>
